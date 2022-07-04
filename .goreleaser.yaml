@@ -10,6 +10,12 @@ builds:
       - arm64
     dir: .
     main: mod/main.go
+brews:
+- name: gitall
+  homepage: https://github.com/jkassis/gitall
+  tap:
+    owner: jkassis
+    name: homebrew-tap
 # dockers:
 # - image_templates: ["ghcr.io/goreleaser/example:{{ .Version }}"]
 #   dockerfile: Dockerfile
