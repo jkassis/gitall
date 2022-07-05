@@ -9,7 +9,7 @@ builds:
       - amd64
       - arm64
     dir: .
-    main: mod/main.go
+    main: cmd/main.go
 brews:
 - name: gitall
   homepage: https://github.com/jkassis/homebrew-tap

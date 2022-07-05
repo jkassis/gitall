@@ -32,4 +32,4 @@
 # windows	386
 # windows	amd64
 
-env CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o server/dist/main_linux_arm64 server/main.go
+env go build -o dist/main_linux_arm64 cmd/main.go

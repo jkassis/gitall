@@ -9,7 +9,7 @@
         "type": "go",
         "request": "launch",
         "mode": "debug",
-        "program": "${workspaceFolder}/mod/main.go",
+        "program": "${workspaceFolder}/cmd/main.go",
         "cwd": ".",
         "args": [".", "../nm2"],
         "env":{}
