@@ -14,7 +14,6 @@ type SyncReq struct {
 }
 
 var NL = "\n"
-var checkMark = 0x2714
 var clrReset = "\033[0m"
 var clrRed = "\033[31m"
 var clrGreen = "\033[32m"
@@ -37,7 +36,7 @@ func main() {
 	wd, err = os.Getwd()
 	handle(err, "Getting working directory: ")
 
-	needsAddList := make([]SyncReq, 0)
+	needsSyncList := make([]SyncReq, 0)
 	needsCommitList := make([]SyncReq, 0)
 	needsGitList := make([]SyncReq, 0)
 	needsNothingList := make([]SyncReq, 0)
@@ -66,7 +65,7 @@ func main() {
 		cmd.Stdout = &out
 		err = cmd.Run()
 		if err != nil {
-			needsGitList = append(needsGitList, SyncReq{Dir: dir, Detail: clrRed + "git status error: " + err.Error() + clrReset})
+			needsGitList = append(needsGitList, SyncReq{Dir: dir, Detail: clrRed + "git status: " + err.Error() + clrReset})
 		} else {
 			gitStatus := out.String()
 
@@ -88,12 +87,12 @@ func main() {
 				if strings.Contains(gitStatus, "Your branch is up to date") {
 					needsNothingList = append(needsNothingList, SyncReq{Dir: dir, Detail: clrGreen + "in sync (" + remoteOriginURL + ")" + clrReset})
 				} else {
-					needsAddList = append(needsAddList, SyncReq{Dir: dir, Detail: clrYellow + "out of sync (" + remoteOriginURL + ")" + clrReset})
+					needsSyncList = append(needsSyncList, SyncReq{Dir: dir, Detail: clrYellow + "out of sync (" + remoteOriginURL + ")" + clrReset})
 				}
 			} else if strings.Contains(gitStatus, "Changes not staged for commit") {
 				needsCommitList = append(needsCommitList, SyncReq{Dir: dir, Detail: clrPurple + "unstaged changes (" + remoteOriginURL + ")" + clrReset})
 			} else if strings.Contains(gitStatus, "untracked files present") {
-				needsAddList = append(needsAddList, SyncReq{Dir: dir, Detail: clrPurple + "untracked files (" + remoteOriginURL + ")" + clrReset})
+				needsSyncList = append(needsSyncList, SyncReq{Dir: dir, Detail: clrPurple + "untracked files (" + remoteOriginURL + ")" + clrReset})
 			} else {
 				needsGitList = append(needsGitList, SyncReq{Dir: dir, Detail: gitStatus})
 			}
@@ -104,18 +103,18 @@ func main() {
 	}
 
 	for _, syncReq := range needsGitList {
-		fmt.Printf(clrRed + "x " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
+		fmt.Printf(clrRed + " x  " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
 
 	for _, syncReq := range needsNothingList {
-		fmt.Printf(clrGreen + string(rune(checkMark)) + clrReset + " " + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
+		fmt.Printf(clrGreen + " \u2714  " + clrReset + " " + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
 
 	for _, syncReq := range needsCommitList {
-		fmt.Printf(clrPurple + "! " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
+		fmt.Printf(clrPurple + " +  " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
 
-	for _, syncReq := range needsAddList {
-		fmt.Printf(clrYellow + "+ " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
+	for _, syncReq := range needsSyncList {
+		fmt.Printf(clrYellow + "<-> " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
 }
