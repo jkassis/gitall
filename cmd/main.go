@@ -107,7 +107,7 @@ func main() {
 	}
 
 	for _, syncReq := range needsNothingList {
-		fmt.Printf(clrGreen + " \u2714  " + clrReset + " " + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
+		fmt.Printf(clrGreen + " \u2714 " + clrReset + " " + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
 
 	for _, syncReq := range needsCommitList {
