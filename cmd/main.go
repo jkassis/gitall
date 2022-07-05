@@ -68,20 +68,20 @@ func main() {
 		cmd.Stdout = &out
 		err = cmd.Run()
 		if err != nil {
+			// git status problem
 			syncBadList = append(syncBadList, SyncReq{Dir: dir, Reason: colorRed + "git status error: " + err.Error() + colorReset})
-			continue
-		}
-
-		// report
-		gitStatus := out.String()
-		if strings.Contains(gitStatus, "nothing to commit, working tree clean") {
-			syncGoodList = append(syncGoodList, dir)
-		} else if strings.Contains(gitStatus, "Changes not staged for commit") {
-			syncActionList = append(syncActionList, SyncReq{Dir: dir, Reason: colorYellow + "has unstaged changes" + colorReset})
-		} else if strings.Contains(gitStatus, "untracked files present") {
-			syncActionList = append(syncActionList, SyncReq{Dir: dir, Reason: colorPurple + "has untracked files" + colorReset})
 		} else {
-			syncBadList = append(syncBadList, SyncReq{Dir: dir, Reason: gitStatus})
+			// report
+			gitStatus := out.String()
+			if strings.Contains(gitStatus, "nothing to commit, working tree clean") {
+				syncGoodList = append(syncGoodList, dir)
+			} else if strings.Contains(gitStatus, "Changes not staged for commit") {
+				syncActionList = append(syncActionList, SyncReq{Dir: dir, Reason: colorYellow + "has unstaged changes" + colorReset})
+			} else if strings.Contains(gitStatus, "untracked files present") {
+				syncActionList = append(syncActionList, SyncReq{Dir: dir, Reason: colorPurple + "has untracked files" + colorReset})
+			} else {
+				syncBadList = append(syncBadList, SyncReq{Dir: dir, Reason: gitStatus})
+			}
 		}
 
 		err = os.Chdir(wd)
