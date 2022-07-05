@@ -13,20 +13,17 @@ type SyncReq struct {
 	Reason string
 }
 
-var checkMark = 0x2714
-var colorReset = "\033[0m"
-
-var colorRed = "\033[31m"
-var colorGreen = "\033[32m"
-var colorYellow = "\033[33m"
-
 var NL = "\n"
+var checkMark = 0x2714
+var clrReset = "\033[0m"
+var clrRed = "\033[31m"
+var clrGreen = "\033[32m"
+var clrYellow = "\033[33m"
+var clrPurple = "\033[35m"
 
-// var colorBlue = "\033[34m"
-var colorPurple = "\033[35m"
-
-// var colorCyan = "\033[36m"
-// var colorWhite = "\033[37m"
+// var clrBlue = "\033[34m"
+// var clrCyan = "\033[36m"
+// var clrWhite = "\033[37m"
 
 func main() {
 	var err error
@@ -41,7 +38,7 @@ func main() {
 	handle(err, "Getting working directory: ")
 
 	syncBadList := make([]SyncReq, 0)
-	syncGoodList := make([]string, 0)
+	syncGoodList := make([]SyncReq, 0)
 	syncActionList := make([]SyncReq, 0)
 
 	for _, dir := range os.Args[1:] {
@@ -68,17 +65,30 @@ func main() {
 		cmd.Stdout = &out
 		err = cmd.Run()
 		if err != nil {
-			// git status problem
-			syncBadList = append(syncBadList, SyncReq{Dir: dir, Reason: colorRed + "git status error: " + err.Error() + colorReset})
+			syncBadList = append(syncBadList, SyncReq{Dir: dir, Reason: clrRed + "git status error: " + err.Error() + clrReset})
 		} else {
-			// report
 			gitStatus := out.String()
+
+			var remoteOriginURL string
+			{
+				cmd := exec.Command("git", "config", "--get", "remote.origin.url")
+				var out bytes.Buffer
+				cmd.Stdout = &out
+				err = cmd.Run()
+				if err != nil {
+					syncBadList = append(syncBadList, SyncReq{Dir: dir, Reason: clrRed + "git config error: " + err.Error() + clrReset})
+				} else {
+					remoteOriginURL = out.String()
+					remoteOriginURL = strings.TrimSpace(remoteOriginURL)
+				}
+			}
+
 			if strings.Contains(gitStatus, "nothing to commit, working tree clean") {
-				syncGoodList = append(syncGoodList, dir)
+				syncGoodList = append(syncGoodList, SyncReq{Dir: dir, Reason: clrGreen + "synced (" + remoteOriginURL + ")" + clrReset})
 			} else if strings.Contains(gitStatus, "Changes not staged for commit") {
-				syncActionList = append(syncActionList, SyncReq{Dir: dir, Reason: colorYellow + "has unstaged changes" + colorReset})
+				syncActionList = append(syncActionList, SyncReq{Dir: dir, Reason: clrYellow + "has unstaged changes (" + remoteOriginURL + ")" + clrReset})
 			} else if strings.Contains(gitStatus, "untracked files present") {
-				syncActionList = append(syncActionList, SyncReq{Dir: dir, Reason: colorPurple + "has untracked files" + colorReset})
+				syncActionList = append(syncActionList, SyncReq{Dir: dir, Reason: clrPurple + "has untracked files (" + remoteOriginURL + ")" + clrReset})
 			} else {
 				syncBadList = append(syncBadList, SyncReq{Dir: dir, Reason: gitStatus})
 			}
@@ -88,15 +98,15 @@ func main() {
 		handle(err, "Restoring working directory: ")
 	}
 
-	for _, dir := range syncGoodList {
-		fmt.Printf(colorGreen + string(rune(checkMark)) + colorReset + " " + fmt.Sprintf("%-40s", dir) + NL)
+	for _, syncReq := range syncGoodList {
+		fmt.Printf(clrGreen + string(rune(checkMark)) + clrReset + " " + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Reason + NL)
 	}
 
 	for _, syncReq := range syncBadList {
-		fmt.Printf(colorRed + "x " + colorReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Reason + NL)
+		fmt.Printf(clrRed + "x " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Reason + NL)
 	}
 
 	for _, syncReq := range syncActionList {
-		fmt.Printf(colorYellow + "! " + colorReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Reason + NL)
+		fmt.Printf(clrYellow + "! " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Reason + NL)
 	}
 }
