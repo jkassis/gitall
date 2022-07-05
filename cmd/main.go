@@ -10,7 +10,7 @@ import (
 
 type SyncReq struct {
 	Dir    string
-	Reason string
+	Detail string
 }
 
 var NL = "\n"
@@ -37,15 +37,16 @@ func main() {
 	wd, err = os.Getwd()
 	handle(err, "Getting working directory: ")
 
-	syncBadList := make([]SyncReq, 0)
-	syncGoodList := make([]SyncReq, 0)
-	syncActionList := make([]SyncReq, 0)
+	needsAddList := make([]SyncReq, 0)
+	needsCommitList := make([]SyncReq, 0)
+	needsGitList := make([]SyncReq, 0)
+	needsNothingList := make([]SyncReq, 0)
 
 	for _, dir := range os.Args[1:] {
 		// go to the directory
 		fileInfo, err := os.Stat(dir)
 		if err != nil {
-			syncBadList = append(syncBadList, SyncReq{Dir: dir, Reason: err.Error()})
+			needsGitList = append(needsGitList, SyncReq{Dir: dir, Detail: err.Error()})
 			continue
 		}
 
@@ -55,7 +56,7 @@ func main() {
 
 		err = os.Chdir(dir)
 		if err != nil {
-			syncBadList = append(syncBadList, SyncReq{Dir: dir, Reason: err.Error()})
+			needsGitList = append(needsGitList, SyncReq{Dir: dir, Detail: err.Error()})
 			continue
 		}
 
@@ -65,7 +66,7 @@ func main() {
 		cmd.Stdout = &out
 		err = cmd.Run()
 		if err != nil {
-			syncBadList = append(syncBadList, SyncReq{Dir: dir, Reason: clrRed + "git status error: " + err.Error() + clrReset})
+			needsGitList = append(needsGitList, SyncReq{Dir: dir, Detail: clrRed + "git status error: " + err.Error() + clrReset})
 		} else {
 			gitStatus := out.String()
 
@@ -76,7 +77,7 @@ func main() {
 				cmd.Stdout = &out
 				err = cmd.Run()
 				if err != nil {
-					syncBadList = append(syncBadList, SyncReq{Dir: dir, Reason: clrRed + "git config error: " + err.Error() + clrReset})
+					needsGitList = append(needsGitList, SyncReq{Dir: dir, Detail: clrRed + "git config error: " + err.Error() + clrReset})
 				} else {
 					remoteOriginURL = out.String()
 					remoteOriginURL = strings.TrimSpace(remoteOriginURL)
@@ -84,13 +85,17 @@ func main() {
 			}
 
 			if strings.Contains(gitStatus, "nothing to commit, working tree clean") {
-				syncGoodList = append(syncGoodList, SyncReq{Dir: dir, Reason: clrGreen + "synced (" + remoteOriginURL + ")" + clrReset})
+				if strings.Contains(gitStatus, "Your branch is up to date") {
+					needsNothingList = append(needsNothingList, SyncReq{Dir: dir, Detail: clrGreen + "in sync (" + remoteOriginURL + ")" + clrReset})
+				} else {
+					needsAddList = append(needsAddList, SyncReq{Dir: dir, Detail: clrYellow + "out of sync (" + remoteOriginURL + ")" + clrReset})
+				}
 			} else if strings.Contains(gitStatus, "Changes not staged for commit") {
-				syncActionList = append(syncActionList, SyncReq{Dir: dir, Reason: clrYellow + "has unstaged changes (" + remoteOriginURL + ")" + clrReset})
+				needsCommitList = append(needsCommitList, SyncReq{Dir: dir, Detail: clrPurple + "unstaged changes (" + remoteOriginURL + ")" + clrReset})
 			} else if strings.Contains(gitStatus, "untracked files present") {
-				syncActionList = append(syncActionList, SyncReq{Dir: dir, Reason: clrPurple + "has untracked files (" + remoteOriginURL + ")" + clrReset})
+				needsAddList = append(needsAddList, SyncReq{Dir: dir, Detail: clrPurple + "untracked files (" + remoteOriginURL + ")" + clrReset})
 			} else {
-				syncBadList = append(syncBadList, SyncReq{Dir: dir, Reason: gitStatus})
+				needsGitList = append(needsGitList, SyncReq{Dir: dir, Detail: gitStatus})
 			}
 		}
 
@@ -98,15 +103,19 @@ func main() {
 		handle(err, "Restoring working directory: ")
 	}
 
-	for _, syncReq := range syncGoodList {
-		fmt.Printf(clrGreen + string(rune(checkMark)) + clrReset + " " + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Reason + NL)
+	for _, syncReq := range needsGitList {
+		fmt.Printf(clrRed + "x " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
 
-	for _, syncReq := range syncBadList {
-		fmt.Printf(clrRed + "x " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Reason + NL)
+	for _, syncReq := range needsNothingList {
+		fmt.Printf(clrGreen + string(rune(checkMark)) + clrReset + " " + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
 
-	for _, syncReq := range syncActionList {
-		fmt.Printf(clrYellow + "! " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Reason + NL)
+	for _, syncReq := range needsCommitList {
+		fmt.Printf(clrPurple + "! " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
+	}
+
+	for _, syncReq := range needsAddList {
+		fmt.Printf(clrYellow + "+ " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
 }
