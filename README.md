@@ -8,7 +8,7 @@ A CLI to perform git operations on multiple repositories. Right now this generat
 
 >
 ```
-> [I] jkassis@Jeremys-MacBook-Pro ~/code>  [\<repo-dir\>]+
+> [I] jkassis@Jeremys-MacBook-Pro ~/code> gitall [\<repo-dir\>]+
 ```
 
 ## eg
