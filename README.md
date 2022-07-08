@@ -6,7 +6,7 @@ A CLI to perform git operations on multiple repositories. Right now this generat
 
 ## Usage
 
-> gitall [<repo-dir>]+
+> gitall [\<repo-dir\>]+
 
 ## eg
 
@@ -27,7 +27,5 @@ A CLI to perform git operations on multiple repositories. Right now this generat
 
 ## Installation
 
-```
 > brew tap jkassis/keg
 > brew install gitall
-```
