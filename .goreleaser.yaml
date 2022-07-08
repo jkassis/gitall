@@ -12,10 +12,10 @@ builds:
     main: cmd/main.go
 brews:
 - name: gitall
-  homepage: https://github.com/jkassis/homebrew-tap
+  homepage: https://github.com/jkassis/homebrew-keg
   tap:
     owner: jkassis
-    name: homebrew-tap
+    name: homebrew-keg
     token: "{{ .Env.TAP_GITHUB_TOKEN }}"
 # dockers:
 # - image_templates: ["ghcr.io/goreleaser/example:{{ .Version }}"]
