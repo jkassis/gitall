@@ -6,7 +6,10 @@ A CLI to perform git operations on multiple repositories. Right now this generat
 
 ## Usage
 
-> gitall [\<repo-dir\>]+
+>
+```
+> [I] jkassis@Jeremys-MacBook-Pro ~/code>  [\<repo-dir\>]+
+```
 
 ## eg
 
@@ -27,5 +30,8 @@ A CLI to perform git operations on multiple repositories. Right now this generat
 
 ## Installation
 
-> brew tap jkassis/keg
-> brew install gitall
+>
+```
+> [I] jkassis@Jeremys-MacBook-Pro ~/code>  tap jkassis/keg
+> [I] jkassis@Jeremys-MacBook-Pro ~/code>  install gitall
+```
