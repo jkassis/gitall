@@ -33,5 +33,5 @@ A CLI to perform git operations on multiple repositories. Right now this generat
 >
 ```
 > [I] jkassis@Jeremys-MacBook-Pro ~/code>  tap jkassis/keg
-> [I] jkassis@Jeremys-MacBook-Pro ~/code>  install gitall
+> [I] jkassis@Jeremys-MacBook-Pro ~/code>  brew install gitall
 ```
