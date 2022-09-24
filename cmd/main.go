@@ -1,11 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
-	"os/exec"
 	"strings"
+
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 )
 
 type SyncReq struct {
@@ -25,84 +28,141 @@ var clrPurple = "\033[35m"
 // var clrWhite = "\033[37m"
 
 func main() {
-	var err error
-	handle := func(err error, ctx string) {
-		if err != nil {
-			fmt.Println(ctx, err)
-			os.Exit(1)
-		}
+	// var err error
+	// handle := func(err error, ctx string) {
+	// 	if err != nil {
+	// 		fmt.Println(ctx, err)
+	// 		os.Exit(1)
+	// 	}
+	// }
+
+	// var wd string
+	// wd, err = os.Getwd()
+	// handle(err, "Getting working directory: ")
+
+	privateKeyFilePassword := "HDfHrRJwYbcN3"
+	privateKeyFilePath := "/Users/jkassis/.ssh/id_rsa"
+	_, err := os.Stat(privateKeyFilePath)
+	if err != nil {
+		fmt.Printf(clrRed + "read file %s failed %s\n" + clrReset)
+		return
 	}
-	var wd string
-	wd, err = os.Getwd()
-	handle(err, "Getting working directory: ")
+
+	// Clone the given repository to the given directory
+	bytes, err := ioutil.ReadFile(privateKeyFilePath)
+	publicKeys, err := ssh.NewPublicKeys("git", bytes, privateKeyFilePassword)
+
+	// publicKeys, err := ssh.NewPublicKeysFromFile("git", privateKeyFilePath, privateKeyFilePassword)
+	// if err != nil {
+	// 	fmt.Printf(clrRed+"generate publickeys failed: %s\n", err.Error()+clrReset)
+	// 	return
+	// }
 
 	needsSyncList := make([]SyncReq, 0)
 	needsCommitList := make([]SyncReq, 0)
-	needsGitList := make([]SyncReq, 0)
+	repoErrorList := make([]SyncReq, 0)
 	needsNothingList := make([]SyncReq, 0)
 
-	for _, dir := range os.Args[1:] {
-		// go to the directory
-		fileInfo, err := os.Stat(dir)
+	checkErr := func(err error, dir string) bool {
 		if err != nil {
-			needsGitList = append(needsGitList, SyncReq{Dir: dir, Detail: err.Error()})
-			continue
-		}
-
-		if !fileInfo.IsDir() {
-			continue
-		}
-
-		err = os.Chdir(dir)
-		if err != nil {
-			needsGitList = append(needsGitList, SyncReq{Dir: dir, Detail: err.Error()})
-			continue
-		}
-
-		// get git status
-		cmd := exec.Command("git", "status")
-		var out bytes.Buffer
-		cmd.Stdout = &out
-		err = cmd.Run()
-		if err != nil {
-			needsGitList = append(needsGitList, SyncReq{Dir: dir, Detail: clrRed + "git status: " + err.Error() + clrReset})
-		} else {
-			gitStatus := out.String()
-
-			var remoteOriginURL string
-			{
-				cmd := exec.Command("git", "config", "--get", "remote.origin.url")
-				var out bytes.Buffer
-				cmd.Stdout = &out
-				err = cmd.Run()
-				if err != nil {
-					needsGitList = append(needsGitList, SyncReq{Dir: dir, Detail: clrRed + "git config error: " + err.Error() + clrReset})
-				} else {
-					remoteOriginURL = out.String()
-					remoteOriginURL = strings.TrimSpace(remoteOriginURL)
-				}
+			if strings.Contains(err.Error(), "knownhosts") {
+				err = fmt.Errorf("problem with known_hosts entry for 'github.com'. try running `ssh-keyscan github.com >> ~/.ssh/known_hosts` on your cli: %v", err)
 			}
-
-			if strings.Contains(gitStatus, "nothing to commit, working tree clean") {
-				if strings.Contains(gitStatus, "Your branch is up to date") {
-					needsNothingList = append(needsNothingList, SyncReq{Dir: dir, Detail: clrGreen + "in sync (" + remoteOriginURL + ")" + clrReset})
-				} else {
-					needsSyncList = append(needsSyncList, SyncReq{Dir: dir, Detail: clrYellow + "out of sync (" + remoteOriginURL + ")" + clrReset})
-				}
-			} else if strings.Contains(gitStatus, "Changes not staged for commit") {
-				needsCommitList = append(needsCommitList, SyncReq{Dir: dir, Detail: clrPurple + "unstaged changes (" + remoteOriginURL + ")" + clrReset})
-			} else if strings.Contains(gitStatus, "untracked files present") {
-				needsSyncList = append(needsSyncList, SyncReq{Dir: dir, Detail: clrPurple + "untracked files (" + remoteOriginURL + ")" + clrReset})
-			} else {
-				needsGitList = append(needsGitList, SyncReq{Dir: dir, Detail: gitStatus})
-			}
+			repoErrorList = append(repoErrorList, SyncReq{Dir: dir, Detail: err.Error()})
+			return true
 		}
-
-		err = os.Chdir(wd)
-		handle(err, "Restoring working directory: ")
+		return false
 	}
 
-	for _, syncReq := range needsGitList {
+REPOS:
+	for _, dir := range os.Args[1:] {
+
+		// open, get worktree, status, and config
+		r, err := git.PlainOpen(dir)
+		if checkErr(err, dir) {
+			continue
+		}
+
+		// fetch the origin
+		err = r.Fetch(&git.FetchOptions{RemoteName: "origin", Auth: publicKeys, InsecureSkipTLS: true})
+		if err != nil {
+			if strings.Contains(err.Error(), "already up-to-date") {
+				// do nothing
+			} else if strings.Contains(err.Error(), "knownhosts") {
+				err = fmt.Errorf("problem with known_hosts entry for 'github.com'. try running `ssh-keyscan github.com >> ~/.ssh/known_hosts` on your cli: %v", err)
+				repoErrorList = append(repoErrorList, SyncReq{Dir: dir, Detail: err.Error()})
+				continue
+			}
+		}
+
+		// remoteOriginURL := origin.URLs[0]
+
+		// get references for head and remote/origin
+		refs, err := r.References()
+		if checkErr(err, dir) {
+			continue
+		}
+		refsHeads := make(map[string]string)
+		refsOrigin := make(map[string]string)
+		err = refs.ForEach(func(ref *plumbing.Reference) error {
+			// The HEAD is omitted in a `git show-ref` so we ignore the symbolic
+			// references, the HEAD
+			if ref.Type() == plumbing.SymbolicReference {
+				return nil
+			}
+			if strings.HasPrefix(string(ref.Name()), "refs/heads/") {
+				refsHeads[string(ref.Name()[11:])] = ref.Hash().String()
+			}
+			if strings.HasPrefix(string(ref.Name()), "refs/remotes/origin/") {
+				refsOrigin[string(ref.Name()[20:])] = ref.Hash().String()
+			}
+
+			return nil
+		})
+		if checkErr(err, dir) {
+			continue
+		}
+
+		// for each head reference
+		for headBranch, headHash := range refsHeads {
+			originHash, ok := refsOrigin[headBranch]
+			if !ok {
+				needsSyncList = append(needsSyncList, SyncReq{Dir: dir + " " + headBranch, Detail: clrYellow + "has no origin branch" + clrReset})
+				continue REPOS
+			}
+
+			if headHash != originHash {
+				needsSyncList = append(needsSyncList, SyncReq{Dir: dir + " " + headBranch, Detail: clrYellow + "out of sync with origin" + clrReset})
+				continue REPOS
+			}
+		}
+
+		// now get the current worktree
+		w, err := r.Worktree()
+		if checkErr(err, dir) {
+			continue
+		}
+
+		// loop through all status
+		s, err := w.Status()
+		if checkErr(err, dir) {
+			continue
+		}
+		for _, status := range s {
+			if status.Worktree != git.Unmodified {
+				needsCommitList = append(needsCommitList, SyncReq{Dir: dir, Detail: clrPurple + "has unstaged changes" + clrReset})
+				continue
+			}
+			if status.Staging != git.Unmodified {
+				needsCommitList = append(needsCommitList, SyncReq{Dir: dir, Detail: clrPurple + "has staged changes" + clrReset})
+				continue
+			}
+		}
+
+		needsNothingList = append(needsNothingList, SyncReq{Dir: dir, Detail: clrGreen + "in sync" + clrReset})
+	}
+
+	for _, syncReq := range repoErrorList {
 		fmt.Printf(clrRed + " x  " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
 
