@@ -9,7 +9,7 @@ builds:
       - amd64
       - arm64
     dir: .
-    main: cmd
+    main: ./cmd
 brews:
 - name: gitall
   homepage: https://github.com/jkassis/homebrew-keg
