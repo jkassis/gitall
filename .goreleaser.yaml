@@ -9,10 +9,8 @@ builds:
       - amd64
       - arm64
     dir: .
+    dir: cmd
     main: ./cmd/main.go
-includes:
-  - from_file:
-      path: ./cmd
 brews:
   - name: gitall
     homepage: https://github.com/jkassis/homebrew-keg

@@ -14,6 +14,10 @@ var MAIN = &cobra.Command{
 	Short: "A CLI for operations on groups of git repos.",
 }
 
+func init() {
+	CMDStatusInit()
+}
+
 func main() {
 	err := MAIN.Execute()
 	if err != nil {

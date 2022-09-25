@@ -16,7 +16,7 @@ import (
 	"golang.org/x/term"
 )
 
-func init() {
+func CMDStatusInit() {
 	// A general configuration object (feed with flags, conf files, etc.)
 	v := viper.New()
 
