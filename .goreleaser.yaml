@@ -9,14 +9,14 @@ builds:
       - amd64
       - arm64
     dir: .
-    main: ./cmd
+    main: ./cmd/*
 brews:
-- name: gitall
-  homepage: https://github.com/jkassis/homebrew-keg
-  tap:
-    owner: jkassis
-    name: homebrew-keg
-    token: "{{ .Env.KEG_GITHUB_TOKEN }}"
+  - name: gitall
+    homepage: https://github.com/jkassis/homebrew-keg
+    tap:
+      owner: jkassis
+      name: homebrew-keg
+      token: '{{ .Env.KEG_GITHUB_TOKEN }}'
 # dockers:
 # - image_templates: ["ghcr.io/goreleaser/example:{{ .Version }}"]
 #   dockerfile: Dockerfile
@@ -30,11 +30,11 @@ brews:
 #   - --label=org.opencontainers.image.revision={{ .FullCommit }}
 #   - --label=org.opencontainers.image.licenses=MIT
 nfpms:
-- maintainer: Jeremy Kassis <jkassis@gmail.com>
-  description: Performs some git operations on multiple repos and outputs summaries.
-  homepage: https://github.com/jkassis/gitall
-  license: MIT
-  formats:
-  - deb
-  - rpm
-  - apk
+  - maintainer: Jeremy Kassis <jkassis@gmail.com>
+    description: Performs some git operations on multiple repos and outputs summaries.
+    homepage: https://github.com/jkassis/gitall
+    license: MIT
+    formats:
+      - deb
+      - rpm
+      - apk
