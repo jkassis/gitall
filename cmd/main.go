@@ -23,14 +23,13 @@ func main() {
 }
 
 const (
-	SSH_PASSWORD = "ssh_key_password"
-	SSH_KEY_PATH = "ssh_key_path"
+	SSH_KEY_PATH        = "ssh_key_path"
+	SSH_KEY_PASS_PROMPT = "ssh_key_pass_prompt"
 )
 
 func CMDGitConfig(c *cobra.Command, v *viper.Viper) {
-	c.PersistentFlags().StringP(SSH_PASSWORD, "p", "", "ssh key password")
-	// c.MarkPersistentFlagRequired(SSH_PASSWORD)
-	v.BindPFlag(SSH_PASSWORD, c.PersistentFlags().Lookup(SSH_PASSWORD))
+	c.PersistentFlags().BoolP(SSH_KEY_PASS_PROMPT, "p", false, "prompt for ssh key password")
+	v.BindPFlag(SSH_KEY_PASS_PROMPT, c.PersistentFlags().Lookup(SSH_KEY_PASS_PROMPT))
 
 	c.PersistentFlags().StringP(SSH_KEY_PATH, "k", "~/.ssh/id_rsa", "ssh key path")
 	v.BindPFlag(SSH_KEY_PATH, c.PersistentFlags().Lookup(SSH_KEY_PATH))

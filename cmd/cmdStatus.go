@@ -3,16 +3,17 @@ package main
 import (
 	"fmt"
 	"os"
-	"sort"
 	"strings"
+	"syscall"
 
-	"github.com/99designs/keyring"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/keybase/go-keychain"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/term"
 )
 
 func init() {
@@ -31,6 +32,18 @@ func init() {
 
 	CMDGitConfig(c, v)
 	MAIN.AddCommand(c)
+}
+
+// PasswordPrompt asks for a string value using the label.
+// The entered value will not be displayed on the screen
+// while typing.
+func PasswordPrompt(label string) string {
+	var s string
+	fmt.Fprint(os.Stderr, label+" ")
+	b, _ := term.ReadPassword(int(syscall.Stdin))
+	s = string(b)
+	fmt.Println()
+	return s
 }
 
 type SyncReq struct {
@@ -64,67 +77,40 @@ func CMDStatus(v *viper.Viper, dirs []string) {
 
 	var privateKeyFilePassword string
 	{
-		privateKeyFilePassword = v.GetString(SSH_PASSWORD)
-		if privateKeyFilePassword == "" {
-			// See https://apple.stackexchange.com/questions/265131/recover-ssh-private-key-passphrase-from-keychain/268175#268175
-			// do a keychain lookup
-			// 	{
-			// 		kSecClass: kSecClassGenericPassword,
-			// 		kSecAttrAccount: pathToPrivateKey,
-			// 		kSecAttrLabel: "SSH: " + pathToPrivateKey,
-			// 		kSecAttrService: "OpenSSH",
-			// 		kSecAttrNoLegacy: TRUE,
-			// 		kSecAttrAccessGroup: "com.apple.ssh.passphrases"
-			// }
+		{
+			prompt := v.GetBool(SSH_KEY_PASS_PROMPT)
+			password, err := keychain.GetGenericPassword("gitall", privateKeyFilePath, "", "github.com/jkassis/gitall")
+			if err != nil {
+				log.Fatalf("ssh key password not provided and could not lookup in keychain: %v", err)
+			} else if prompt || len(password) == 0 {
+				if prompt {
+					log.Warnf("prompting by request...")
+				} else {
+					log.Warnf("ssh key password not found in keychain for %s", privateKeyFilePath)
+				}
 
-			{
-				ring, _ := keyring.Open(keyring.Config{
-					// KeychainName: "icloud",
-					// ServiceName: "com.apple.ssh.passphrases",
-					KeychainTrustApplication: true,
-				})
+				// prompt
+				privateKeyFilePassword = PasswordPrompt("Enter password for " + privateKeyFilePath + ": ")
 
-				keys, err := ring.Keys()
+				// add
+				item := keychain.NewGenericPassword("gitall", privateKeyFilePath, "", []byte(privateKeyFilePassword), "github.com/jkassis/gitall")
+				item.SetSynchronizable(keychain.SynchronizableNo)
+				item.SetAccessible(keychain.AccessibleWhenUnlocked)
+				err := keychain.AddItem(item)
+				if err == keychain.ErrorDuplicateItem {
+					err = keychain.UpdateItem(item, item)
+				}
 				if err != nil {
-					log.Fatal(err)
+					log.Fatalf("Error setting password in keychain: %v", err)
+				} else {
+					log.Warnf("Saved password in keychain for %s", privateKeyFilePath)
 				}
-				if len(keys) == 0 {
-					log.Error("No keys found!")
-				}
-				sort.Strings(keys)
-				for _, key := range keys {
-					log.Info(key)
-					// i, _ := ring.Get(key)
-					// log.Info(i.Data)
-				}
-
-				// i, _ := ring.Get("Fastly")
-				// i, _ := ring.Get(privateKeyFilePath)
+			} else {
+				privateKeyFilePassword = string(password)
+				log.Warnf("Got password from keychain for %s", privateKeyFilePath)
 			}
-
-			// {
-			// 	query := keychain.NewItem()
-			// 	query.SetSecClass(keychain.SecClassGenericPassword)
-			// 	query.SetAccount("")
-			// 	// query.SetLabel("SSH: " + privateKeyFilePath)
-			// 	// query.SetService("Fastly")
-			// 	// query.SetAccessGroup("com.apple.ssh.passphrases")
-			// 	query.SetReturnRef(true)
-
-			// 	// query.SetReturnAttributes(true)
-			// 	query.SetMatchLimit(keychain.MatchLimitAll)
-			// 	results, err := keychain.QueryItemRef(query)
-			// 	if err != nil {
-			// 		log.Fatalf("ssh key password not provided and could not lookup in keychain: %v", err)
-			// 	} else if len(results) == 0 {
-			// 		log.Fatal("key password not provided and could not lookup in keychain: no results")
-			// 	} else {
-			// 		for _, r := range results {
-			// 			fmt.Printf("%#v\n", r)
-			// 		}
-			// 	}
-			// }
 		}
+
 	}
 
 	// get publicKeys
