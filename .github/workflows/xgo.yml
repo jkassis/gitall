@@ -23,7 +23,7 @@ jobs:
           targets: linux/amd64,linux/arm64,darwin/arm64,darwin/amd64
           trimpath: true
           v: true
-          x: true
+          x: false
           xgo_version: latest
       - name: Release
         uses: softprops/action-gh-release@v1
