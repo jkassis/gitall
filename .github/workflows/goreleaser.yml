@@ -3,7 +3,7 @@ name: goreleaser
 on:
   push:
     tags:
-      - '*'
+      - 'deprecated-in-favor-of-xgo-solution'
 
 jobs:
   goreleaser:
