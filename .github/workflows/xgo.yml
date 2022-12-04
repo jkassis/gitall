@@ -18,6 +18,7 @@ jobs:
           go_version: 1.18
           ldflags: -s -w
           pkg: cmd
+          prefix: gitall
           race: false
           targets: linux/amd64,linux/arm64,darwin/arm64,darwin/amd64
           trimpath: true
@@ -28,9 +29,3 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: build/*
-      - name: Update Homebrew Formula
-        uses: izumin5210/action-homebrew-tap@releases/v0
-        with:
-          tap: jkassisj/homebrew-keg
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tap-token: ${{ secrets.KEG_GITHUB_TOKEN }}
