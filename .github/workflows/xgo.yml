@@ -25,6 +25,12 @@ jobs:
           v: true
           x: false
           xgo_version: latest
+      - name: Compress
+         run: |
+           tar -zcvf gitall-darwin-arm64 > gitall-darwin-arm64.tar.gz ;
+           tar -zcvf gitall-darwin-amd64 > gitall-darwin-amd64.tar.gz ;
+           tar -zcvf gitall-linux-arm64 > gitall-linux-arm64.tar.gz ;
+           tar -zcvf gitall-linux-amd64 > gitall-linux-amd64.tar.gz
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
