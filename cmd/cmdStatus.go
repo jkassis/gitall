@@ -107,7 +107,7 @@ func CMDStatus(v *viper.Viper, dirs []string) {
 				}
 			} else {
 				privateKeyFilePassword = string(password)
-				log.Warnf("Got password from keychain for %s", privateKeyFilePath)
+				log.Warnf("got password from keychain for %s. use -p to override with prompt", privateKeyFilePath)
 			}
 		}
 
