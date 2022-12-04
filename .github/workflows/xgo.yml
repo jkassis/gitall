@@ -14,14 +14,15 @@ jobs:
         name: Build
         uses: crazy-max/ghaction-xgo@v2
         with:
-          xgo_version: latest
-          go_version: 1.18
-          dest: build
-          prefix: myapp
-          targets: windows/amd64,linux/amd64,linux/arm64,darwin/arm64,darwin/amd64
-          v: true
-          x: false
-          race: false
-          ldflags: -s -w
           buildmode: default
+          dest: build
+          go_version: 1.18
+          ldflags: -s -w
+          pkg: cmd
+          prefix: myapp
+          race: false
+          targets: windows/amd64,linux/amd64,linux/arm64,darwin/arm64,darwin/amd64
           trimpath: true
+          v: true
+          x: true
+          xgo_version: latest
