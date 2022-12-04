@@ -18,7 +18,7 @@ jobs:
           go_version: 1.18
           ldflags: -s -w
           pkg: cmd
-          prefix: gitall-${{ env.GITHUB_REF_NAME }}
+          prefix: gitall-${{ github.ref_name }}
           race: false
           targets: linux/amd64,linux/arm64,darwin/arm64,darwin/amd64
           trimpath: true
@@ -26,7 +26,7 @@ jobs:
           x: false
           xgo_version: latest
       - name: Compress
-        run: for FILE in ${{ env.GITHUB_WORKSPACE }}/build/* ; do tar -zcvf $FILE.tar.gz $FILE ; done
+        run: for FILE in ${{ github.workspace }}/build/* ; do tar -zcvf $FILE.tar.gz $FILE ; done
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
