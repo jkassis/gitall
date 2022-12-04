@@ -25,14 +25,14 @@ jobs:
           v: true
           x: false
           xgo_version: latest
-      - name: Compress
-        run: tar -zcvf build/gitall-darwin-arm64 > build/gitall-darwin-arm64.tar.gz ;
-      - name: Compress
-        run: tar -zcvf gitall-darwin-amd64 > build/gitall-darwin-amd64.tar.gz ;
-      - name: Compress
-        run: tar -zcvf build/gitall-linux-arm64 > build/gitall-linux-arm64.tar.gz ;
-      - name: Compress
-        run: tar -zcvf build/gitall-linux-amd64 > build/gitall-linux-amd64.tar.gz
+      - name: Compress darwin-arm
+        run: tar -zcvf build/gitall-${{ env.GITHUB_REF_NAME }}-darwin-arm64.tar.gz build/gitall-darwin-arm64
+      - name: Compress darwin-amd
+        run: tar -zcvf build/gitall-${{ env.GITHUB_REF_NAME }}-darwin-amd64.tar.gz build/gitall-${{ env.GITHUB_REF_NAME }}-darwin-amd64
+      - name: Compress linux-arm
+        run: tar -zcvf build/gitall-${{ env.GITHUB_REF_NAME }}-linux-arm64.tar.gz build/gitall-${{ env.GITHUB_REF_NAME }}-linux-arm64
+      - name: Compress linux-amd
+        run: tar -zcvf build/gitall-${{ env.GITHUB_REF_NAME }}-linux-amd64.tar.gz build/gitall-${{ env.GITHUB_REF_NAME }}-linux-amd64
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
