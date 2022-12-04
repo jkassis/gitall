@@ -2,7 +2,7 @@
 
 # Contributing
 
-# Builds
+# Build Workflow
 
 gitall currently uses github workflows to run xgo for cross-platform builds.
 
@@ -14,8 +14,7 @@ For more on all of this, see `.github/workflows/xgo.yml` and the following proje
 * https://github.com/softprops/action-gh-release
 
 
-
-For more on xgo... https://github.com/karalabe/xgo
+# Triggering Builds
 
 The workflows triggers on a new tag push, so to make a release...
 
