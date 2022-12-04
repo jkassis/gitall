@@ -50,7 +50,7 @@ jobs:
 
           # The GitHub Token (saved as a repo secret) that has `repo` permissions for the homebrew tap you want to release to.
           # Required - string.
-          github_token: ${{ secrets.KEG_GITHUB_TOKEN }}
+          github_token:${{ secrets.KEG_GITHUB_TOKEN }}
 
           # Git author info used to commit to the homebrew tap.
           # Defaults are shown - strings.
@@ -59,7 +59,7 @@ jobs:
 
           # Custom install command for your formula.
           # Required - string.
-          install: 'testing'
+          install: 'bin.install "gitall"'
 
           # Adds URL and checksum targets for different OS and architecture pairs. Using this option assumes
           # a tar archive exists on your GitHub repo with the following URL pattern (this cannot be customized):
