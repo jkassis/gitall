@@ -26,7 +26,7 @@ jobs:
           x: false
           xgo_version: latest
       - name: Compress
-        run: for FILE in build/* ; do tar -zcvf $FILE.tar.gz $FILE ; done
+        run: for FILE in /home/runner/work/gitall/gitall/build/* ; do tar -zcvf $FILE.tar.gz $FILE ; done
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
