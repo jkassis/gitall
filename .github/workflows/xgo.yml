@@ -8,6 +8,12 @@ jobs:
   xgo:
     runs-on: ubuntu-latest
     steps:
+      - uses: bhowell2/github-substring-action
+        id: version
+        with:
+          value: ${{ github.ref_name }}
+          index_of_str: "v"
+          length_from_end: 0
       - name: Checkout
         uses: actions/checkout@v3
       - name: Build
@@ -18,7 +24,7 @@ jobs:
           go_version: 1.18
           ldflags: -s -w
           pkg: cmd
-          prefix: gitall-${{ github.ref_name }}
+          prefix: gitall-${{ steps.version.outputs.substring }}
           race: false
           targets: linux/amd64,linux/arm64,darwin/arm64,darwin/amd64
           trimpath: true
