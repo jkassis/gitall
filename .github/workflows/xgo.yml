@@ -10,8 +10,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      -
-        name: Build
+      - name: Build
         uses: crazy-max/ghaction-xgo@v2
         with:
           buildmode: default
@@ -21,8 +20,12 @@ jobs:
           pkg: cmd
           prefix: myapp
           race: false
-          targets: windows/amd64,linux/amd64,linux/arm64,darwin/arm64,darwin/amd64
+          targets: linux/amd64,linux/arm64,darwin/arm64,darwin/amd64
           trimpath: true
           v: true
           x: true
           xgo_version: latest
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/*
