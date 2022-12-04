@@ -29,12 +29,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: build/*
-      - name: Update Homebrew Formula
-        uses: izumin5210/action-homebrew-tap@releases/v0
-        with:
-          tap: jkassisj/homebrew-keg
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tap-token: ${{ secrets.KEG_GITHUB_TOKEN }}
       - name: Release my project to my Homebrew tap
         uses: Justintime50/homebrew-releaser@v1
         with:
