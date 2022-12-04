@@ -8,7 +8,8 @@ jobs:
   xgo:
     runs-on: ubuntu-latest
     steps:
-      - uses: bhowell2/github-substring-action
+      - name: Version
+        uses: bhowell2/github-substring-action@v1.0.0
         id: version
         with:
           value: ${{ github.ref_name }}
