@@ -5,13 +5,27 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "status",
+      "program": "${workspaceFolder}/cmd",
       "args": ["status", "../merchie", "../jerrie", "../jerriedr", "../gazer", "../arcer", "../poser", "../gitall"],
+
       "console": "integratedTerminal",
       "cwd": ".",
       "env": {},
       "mode": "debug",
-      "name": "cmd",
+      "request": "launch",
+      "type": "go",
+    },
+
+    {
+      "name": "usage",
       "program": "${workspaceFolder}/cmd",
+      "args": ["-h"],
+
+      "console": "integratedTerminal",
+      "cwd": ".",
+      "env": {},
+      "mode": "debug",
       "request": "launch",
       "type": "go",
     }

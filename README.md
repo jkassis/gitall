@@ -2,13 +2,31 @@
 
 ## Description
 
-A CLI to perform git operations on multiple repositories. Right now this generates a one-line sync status for multiple repos.
+A purego CLI for operations on groups of git repos.
+
+## Status
+
+Ironically... because this is pure go, it relies on building against OS native libraries... ie those that implement the os package commands.
+
+Because of that, cross-platform builds are an f'ing nightmatre and we currently only support this for i386.
 
 ## Usage
 
->
 ```
-> [I] jkassis@Jeremys-MacBook-Pro ~/code> gitall [\<repo-dir\>]+
+A CLI for operations on groups of git repos.
+
+Usage:
+  gitall [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  status      Get the status for multiple git repos
+
+Flags:
+  -h, --help   help for gitall
+
+Use "gitall [command] --help" for more information about a command.
 ```
 
 ## eg
