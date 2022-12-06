@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env fish
 
 # GOOS - Target Operating System	GOARCH - Target Platform
 # android	arm
@@ -32,4 +32,15 @@
 # windows	386
 # windows	amd64
 
-env go build -o dist/main_linux_arm64 cmd/main.go
+xgo \
+ -buildmode default \
+ -dest build \
+ -go latest \
+ -ldflags '-s -w' \
+ -pkg cmd \
+ -out gitall \
+ -race \
+ -targets linux/amd64,linux/arm64,darwin/arm64,darwin/amd64 \
+ -v \
+ github.com/jkassis/gitall
+
