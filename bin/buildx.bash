@@ -64,7 +64,7 @@ docker run --rm \
     mysteriumnetwork/xgo:1.18.0 ./cmd/
 
 # make them executable
-chmod 555 build/github.com/jkassis/*
+chmod 775 build/github.com/jkassis/*
 
 
 

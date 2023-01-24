@@ -7,11 +7,17 @@ else
   echo "no changes"
 fi
 
-echo "taring executables"
+echo "cleaning dist dir"
 mkdir -p dist
-find build -type f -exec cp {} dist \;
 DIST=`ls dist`
-for i in $DIST; do tar -czfv dist/$i.tar.gz dist/$i; done
+for i in $DIST; do rm dist/$i; done
+
+echo "copying executables to dist dir"
+find build -type f -exec cp {} dist \;
+
+echo "taring executables in dist"
+DIST=`ls dist`
+for i in $DIST; do tar -czvf dist/$i.tar.gz dist/$i; done
 
 echo "bumping minor release version"
 semver up release
