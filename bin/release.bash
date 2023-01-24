@@ -8,9 +8,10 @@ else
 fi
 
 echo "taring executables"
-mkdir dist
-cp build/* dist
-for i in dist; do tar -czfv $i.tar.gz $i; done
+mkdir -p dist
+find build -type f -exec cp {} dist \;
+DIST=`ls dist`
+for i in $DIST; do tar -czfv dist/$i.tar.gz dist/$i; done
 
 echo "bumping minor release version"
 semver up release

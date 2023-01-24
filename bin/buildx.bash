@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+set -e # exit when any command fails
+mkdir -p build
 
 # GOOS - Target Operating System	GOARCH - Target Platform
 # android	arm
