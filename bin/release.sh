@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+set -e # exit when any command fails
+
 if [ -n "$(git status --porcelain)" ]; then
-  echo "there are uncommitted changes to this repo. be sure to build first and then commit."
+  echo "There are uncommitted changes to this repo. Commit changes and build with bin/build.sh first."
 else
   echo "no changes"
 fi
