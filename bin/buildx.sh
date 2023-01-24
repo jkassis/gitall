@@ -47,6 +47,7 @@
 #   GO_VERSION     - Bootstrapped version of Go to disable uncupported targets
 #   EXT_GOPATH     - GOPATH elements mounted from the host filesystem
 
+# do the builds
 TARGETS="linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64"
 docker run --rm \
     -v "$PWD"/build:/build \
@@ -60,4 +61,8 @@ docker run --rm \
     -e TARGETS="$TARGETS" \
     mysteriumnetwork/xgo:1.18.0 ./cmd/
 
+# make them executable
 chmod 555 build/github.com/jkassis/*
+
+
+
