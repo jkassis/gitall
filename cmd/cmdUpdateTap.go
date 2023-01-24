@@ -6,17 +6,17 @@ import (
 	"github.com/spf13/viper"
 )
 
-func CMDStatusInit() {
+func CMDUpdateTapInit() {
 	// A general configuration object (feed with flags, conf files, etc.)
 	v := viper.New()
 
 	// CLI Command with flag parsing
 	c := &cobra.Command{
-		Use:   "status",
-		Short: "Get the status for multiple git repos",
+		Use:   "updatetap",
+		Short: "Updates a brew tap with the latest releases for multiple git repos.",
 		// Long:  ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			CMDStatus(v, args)
+			CMDUpdateTap(v, args)
 		},
 	}
 
@@ -24,7 +24,7 @@ func CMDStatusInit() {
 	MAIN.AddCommand(c)
 }
 
-func CMDStatus(v *viper.Viper, dirs []string) {
+func CMDUpdateTap(v *viper.Viper, dirs []string) {
 	publicKeys, err := PubKsGet(v)
 	if err != nil {
 		log.Fatal("could not get publicKeys: %v", err)
