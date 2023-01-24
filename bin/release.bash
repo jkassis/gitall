@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 set -e # exit when any command fails
 
+# check for local changes
 if [ -n "$(git status --porcelain)" ]; then
-  echo "There are uncommitted changes to this repo. Commit changes and build with bin/build.sh first."
+  echo "git: there are uncommitted changes to this repo. Commit changes and build with bin/build.sh first."
+  exit 1
 else
-  echo "no changes"
+  echo "git: no changes"
+fi
+
+BRACH=`git rev-parse --abbrev-ref HEAD`
+if [ x"$(git rev-parse $BRANCH)" != x"$(git rev-parse $BRANCH)" ]
+then
+  echo "$BRANCH is not in sync with $BRANCH. You need to rebase or push first."
+  exit 1
 fi
 
 echo "cleaning dist dir"
