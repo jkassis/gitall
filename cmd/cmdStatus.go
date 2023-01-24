@@ -6,10 +6,10 @@ import (
 	"strings"
 	"syscall"
 
+	keyring "github.com/99designs/keyring"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
-	"github.com/keybase/go-keychain"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -75,14 +75,16 @@ func CMDStatus(v *viper.Viper, dirs []string) {
 		}
 	}
 
-	var privateKeyFilePassword string
+	var pkPassword string
 	{
 		{
+			ring, _ := keyring.Open(keyring.Config{
+				ServiceName: "gitall",
+			})
+
+			pkPasswordItem, err := ring.Get("pkPass")
 			prompt := v.GetBool(SSH_KEY_PASS_PROMPT)
-			password, err := keychain.GetGenericPassword("gitall", privateKeyFilePath, "", "github.com/jkassis/gitall")
-			if err != nil {
-				log.Fatalf("ssh key password not provided and could not lookup in keychain: %v", err)
-			} else if prompt || len(password) == 0 {
+			if prompt || err == keyring.ErrKeyNotFound {
 				if prompt {
 					log.Warnf("prompting by request...")
 				} else {
@@ -90,27 +92,25 @@ func CMDStatus(v *viper.Viper, dirs []string) {
 				}
 
 				// prompt
-				privateKeyFilePassword = PasswordPrompt("Enter password for " + privateKeyFilePath + ": ")
+				pkPassword = PasswordPrompt("Enter password for " + privateKeyFilePath + ": ")
 
 				// add
-				item := keychain.NewGenericPassword("gitall", privateKeyFilePath, "", []byte(privateKeyFilePassword), "github.com/jkassis/gitall")
-				item.SetSynchronizable(keychain.SynchronizableNo)
-				item.SetAccessible(keychain.AccessibleWhenUnlocked)
-				err := keychain.AddItem(item)
-				if err == keychain.ErrorDuplicateItem {
-					err = keychain.UpdateItem(item, item)
-				}
+				err = ring.Set(keyring.Item{
+					Key:  "pkPass",
+					Data: []byte(pkPassword),
+				})
 				if err != nil {
 					log.Fatalf("Error setting password in keychain: %v", err)
 				} else {
 					log.Warnf("Saved password in keychain for %s", privateKeyFilePath)
 				}
+			} else if err != nil {
+				log.Fatalf("ssh key password not provided and could not lookup in keychain: %v", err)
 			} else {
-				privateKeyFilePassword = string(password)
+				pkPassword = string(pkPasswordItem.Data)
 				log.Warnf("got password from keychain for %s. use -p to override with prompt", privateKeyFilePath)
 			}
 		}
-
 	}
 
 	// get publicKeys
@@ -125,7 +125,7 @@ func CMDStatus(v *viper.Viper, dirs []string) {
 		if err != nil {
 			log.Fatalf("could not read private key file: %v", err)
 		}
-		publicKeys, err = ssh.NewPublicKeys("git", bytes, privateKeyFilePassword)
+		publicKeys, err = ssh.NewPublicKeys("git", bytes, pkPassword)
 		if err != nil {
 			log.Fatalf("could not generate signer keys: %v", err)
 		}
