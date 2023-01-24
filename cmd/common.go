@@ -8,6 +8,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/google/go-github/v49/github"
 	"github.com/spf13/viper"
 )
 
@@ -26,12 +27,12 @@ var clrPurple = "\033[35m"
 func PubKsGet(v *viper.Viper) (publicKeys *ssh.PublicKeys, err error) {
 	prvKFilePath, err := PrvKFilePathGet(v)
 	if err != nil {
-		return nil, fmt.Errorf("could not get privateKeyFilePath: %v", err)
+		return nil, fmt.Errorf("could not get ssh key path: %v", err)
 	}
 
 	prvKPassword, err := PrvKPasswordGet(v, prvKFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("could not get private key password: %v", err)
+		return nil, fmt.Errorf("could not get ssh key password: %v", err)
 	}
 
 	_, err = os.Stat(prvKFilePath)
@@ -191,4 +192,22 @@ func StatiPrint(s *Stati) {
 	for _, syncReq := range s.NeedsSyncList {
 		fmt.Printf(clrYellow + "<-> " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
+}
+
+func GithubClientGet(v *viper.Viper) (*github.Client, error) {
+	// eventually use this... https://github.com/cli/cli/blob/v2.21.2/internal/authflow/flow.go#L37
+	githubUser, err := GitHubUserGet(v)
+	if err != nil {
+		return nil, fmt.Errorf("could not get github.com username: %v", err)
+	}
+	githubPass, err := GitHubPassGet(v)
+	if err != nil {
+		return nil, fmt.Errorf("could not get github.com password: %v", err)
+	}
+	tp := github.BasicAuthTransport{
+		Username: strings.TrimSpace(githubUser),
+		Password: strings.TrimSpace(githubPass),
+	}
+	client := github.NewClient(tp.Client())
+	return client, nil
 }

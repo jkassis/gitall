@@ -28,7 +28,7 @@ func CMDStatusInit() {
 func CMDStatus(v *viper.Viper, dirs []string) {
 	publicKeys, err := PubKsGet(v)
 	if err != nil {
-		log.Fatal("could not get publicKeys: %v", err)
+		log.Fatalf("could not get publicKeys: %v", err)
 	}
 
 	s := GitStatiGet(publicKeys, dirs)

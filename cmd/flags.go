@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strings"
 	"syscall"
 
 	keyring "github.com/99designs/keyring"
@@ -12,11 +14,29 @@ import (
 	"golang.org/x/term"
 )
 
-func PasswordPrompt(label string) string {
+func Prompt(label string) string {
+	fmt.Print(label)
+	reader := bufio.NewReader(os.Stdin)
+	// ReadString will block until the delimiter is entered
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatalf("could not read prompt response: %v", err)
+	}
+
+	// remove the delimeter from the string
+	input = strings.TrimSpace(input)
+	return input
+}
+
+func PromptSecret(label string) string {
 	var s string
 	fmt.Fprint(os.Stderr, label+" ")
-	b, _ := term.ReadPassword(int(syscall.Stdin))
+	b, err := term.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		log.Fatalf("could not read secret prompt response: %v", err)
+	}
 	s = string(b)
+	s = strings.TrimSpace(s)
 	fmt.Println()
 	return s
 }
@@ -47,9 +67,10 @@ func PrvKPasswordFlag(c *cobra.Command, v *viper.Viper) {
 	v.BindPFlag(SSH_KEY_PASS_PROMPT, c.PersistentFlags().Lookup(SSH_KEY_PASS_PROMPT))
 }
 
-func PrvKPasswordGet(v *viper.Viper, prvKFilePath string) (prvKPassword string, err error) {
+func PrvKPasswordGet(v *viper.Viper, prvKFilePath string) (value string, err error) {
 	ring, _ := keyring.Open(keyring.Config{ServiceName: "gitall"})
-	prvKPasswordItem, err := ring.Get(prvKFilePath)
+	ringKey := prvKFilePath
+	ringItem, err := ring.Get(ringKey)
 
 	// prompt if required or password not found
 	prompt := v.GetBool(SSH_KEY_PASS_PROMPT)
@@ -57,24 +78,104 @@ func PrvKPasswordGet(v *viper.Viper, prvKFilePath string) (prvKPassword string, 
 		if prompt {
 			log.Warnf("prompting by request...")
 		} else {
-			return "", fmt.Errorf("ssh private key password not found in keychain. use -p to provide it")
+			return "", fmt.Errorf("ssh key password not found in keychain. use -p to provide it")
 		}
 
 		// prompt
-		prvKPassword = PasswordPrompt("Enter password for " + prvKFilePath + ": ")
+		value = PromptSecret("Enter ssh key password: ")
 
 		// add
-		err = ring.Set(keyring.Item{Key: prvKFilePath, Data: []byte(prvKPassword)})
+		err = ring.Set(keyring.Item{Key: ringKey, Data: []byte(value)})
 		if err != nil {
-			return "", fmt.Errorf("could not save password in keychain: %v", err)
+			return "", fmt.Errorf("could not save ssh key password in keychain: %v", err)
 		} else {
-			log.Warnf("saved password in keychain for %s", prvKFilePath)
+			log.Warnf("saved ssh key password in keychain for %s", prvKFilePath)
 		}
 	} else if err != nil {
-		return "", fmt.Errorf("could not query keychain for ssh private key password: %v", err)
+		return "", fmt.Errorf("could not query keychain for ssh key password: %v", err)
 	} else {
-		prvKPassword = string(prvKPasswordItem.Data)
-		log.Warnf("got password from keychain for %s. use -p to override with prompt", prvKFilePath)
+		value = string(ringItem.Data)
+		log.Warnf("got ssh key password from keychain for %s. use -p to override with prompt", prvKFilePath)
+	}
+	return
+}
+
+const GITHUB_PASS_PROMPT = "ghpass"
+
+func GithubPassFlag(c *cobra.Command, v *viper.Viper) {
+	c.PersistentFlags().Bool(GITHUB_PASS_PROMPT, false, "prompt for github.com password")
+	v.BindPFlag(GITHUB_PASS_PROMPT, c.PersistentFlags().Lookup(GITHUB_PASS_PROMPT))
+}
+
+func GitHubPassGet(v *viper.Viper) (value string, err error) {
+	ring, _ := keyring.Open(keyring.Config{ServiceName: "gitall"})
+	const ringKey = "ghpass"
+	ringItem, err := ring.Get(ringKey)
+
+	// prompt if required or password not found
+	prompt := v.GetBool(GITHUB_PASS_PROMPT)
+	if prompt || err == keyring.ErrKeyNotFound {
+		if prompt {
+			log.Warnf("prompting by request...")
+		} else {
+			return "", fmt.Errorf("github.com password not found in keychain. use --ghpass to provide it")
+		}
+
+		// prompt
+		value = PromptSecret("Enter github.com password: ")
+
+		// add
+		err = ring.Set(keyring.Item{Key: ringKey, Data: []byte(value)})
+		if err != nil {
+			return "", fmt.Errorf("could not save github.com password in keychain: %v", err)
+		} else {
+			log.Warnf("saved github.com password in keychain")
+		}
+	} else if err != nil {
+		return "", fmt.Errorf("could not query keychain for github.com password: %v", err)
+	} else {
+		value = string(ringItem.Data)
+		log.Warnf("got github.com password from keychain. use -ghpass to override with prompt")
+	}
+	return
+}
+
+const GITHUB_USER_PROMPT = "ghuser"
+
+func GithubUserFlag(c *cobra.Command, v *viper.Viper) {
+	c.PersistentFlags().Bool(GITHUB_USER_PROMPT, false, "prompt for github.com username")
+	v.BindPFlag(GITHUB_USER_PROMPT, c.PersistentFlags().Lookup(GITHUB_USER_PROMPT))
+}
+
+func GitHubUserGet(v *viper.Viper) (value string, err error) {
+	ring, _ := keyring.Open(keyring.Config{ServiceName: "gitall"})
+	const ringKey = "ghuser"
+	ringItem, err := ring.Get(ringKey)
+
+	// prompt if required or password not found
+	prompt := v.GetBool(GITHUB_USER_PROMPT)
+	if prompt || err == keyring.ErrKeyNotFound {
+		if prompt {
+			log.Warnf("prompting by request...")
+		} else {
+			return "", fmt.Errorf("github.com username not found in keychain. use --ghuser to provide it")
+		}
+
+		// prompt
+		value = Prompt("Enter username for github.com: ")
+
+		// add
+		err = ring.Set(keyring.Item{Key: ringKey, Data: []byte(value)})
+		if err != nil {
+			return "", fmt.Errorf("could not save github.com username in keychain: %v", err)
+		} else {
+			log.Warnf("saved github.com username in keychain")
+		}
+	} else if err != nil {
+		return "", fmt.Errorf("could not query keychain for github.com username: %v", err)
+	} else {
+		value = string(ringItem.Data)
+		log.Warnf("got github.com username from keychain. use -ghpass to override with prompt")
 	}
 	return
 }

@@ -7,14 +7,23 @@
     {
       "name": "status",
       "program": "${workspaceFolder}/cmd",
-      "args": ["status", "../merchie", "../jerrie", "../jerriedr", "../gazer", "../arcer", "../poser", "../gitall"],
+      "args": [
+        "status",
+        "../merchie",
+        "../jerrie",
+        "../jerriedr",
+        "../gazer",
+        "../arcer",
+        "../poser",
+        "../gitall"
+      ],
 
       "console": "integratedTerminal",
       "cwd": ".",
       "env": {},
       "mode": "debug",
       "request": "launch",
-      "type": "go",
+      "type": "go"
     },
 
     {
@@ -27,7 +36,26 @@
       "env": {},
       "mode": "debug",
       "request": "launch",
-      "type": "go",
+      "type": "go"
+    },
+    {
+      "name": "updatetap",
+      "program": "${workspaceFolder}/cmd",
+      "args": [
+        "updatetap",
+        // "-p",
+        // "--ghuser",
+        // "--ghpass",
+        "-b",
+        "../homebrew-pub",
+        "../gitall"
+      ],
+      "console": "integratedTerminal",
+      "cwd": ".",
+      "env": {},
+      "mode": "debug",
+      "request": "launch",
+      "type": "go"
     }
   ]
 }
