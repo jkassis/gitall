@@ -2,6 +2,7 @@
 set -e # exit when any command fails
 
 # check for local changes
+echo "git: checking for changes"
 if [ -n "$(git status --porcelain)" ]; then
   echo "git: there are uncommitted changes to this repo. Commit changes and build with bin/build.sh first."
   exit 1
@@ -9,10 +10,11 @@ else
   echo "git: no changes"
 fi
 
-BRACH=`git rev-parse --abbrev-ref HEAD`
-if [ x"$(git rev-parse $BRANCH)" != x"$(git rev-parse $BRANCH)" ]
+echo "git: checking that local branch is in sync with origin"
+BRANCH=`git rev-parse --abbrev-ref HEAD`
+if [ x"$(git rev-parse $BRANCH)" != x"$(git rev-parse origin/$BRANCH)" ]
 then
-  echo "$BRANCH is not in sync with $BRANCH. You need to rebase or push first."
+  echo "$BRANCH is not in sync with origin/$BRANCH. You need to rebase or push first."
   exit 1
 fi
 
