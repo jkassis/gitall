@@ -52,7 +52,6 @@ docker run --rm \
     -v "$PWD"/build:/build \
     -v "$GOPATH"/xgo-cache:/deps-cache:ro \
     -v "$PWD":/source \
-    # -e OUT="$OUT"\
     -e FLAG_V=false \
     -e FLAG_X=false \
     -e FLAG_RACE=false \
@@ -60,3 +59,5 @@ docker run --rm \
     -e FLAG_BUILDMODE=default \
     -e TARGETS="$TARGETS" \
     mysteriumnetwork/xgo:1.18.0 ./cmd/
+
+chmod 555 build/github.com/jkassis/*
