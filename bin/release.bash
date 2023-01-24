@@ -44,7 +44,7 @@ echo "taring executables in dist"
 DIST=`ls dist`
 for i in $DIST; do
   tar -czvf dist/$i.tar.gz dist/$i
-  rm dist/$i.tar.gz
+  rm dist/$i
 done
 
 # bump the minor release version
