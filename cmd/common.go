@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
@@ -63,24 +64,24 @@ type Status struct {
 }
 
 type Stati struct {
-	NeedsSyncList    []Status
-	NeedsCommitList  []Status
-	RepoErrorList    []Status
-	NeedsNothingList []Status
+	NeedsSyncList    map[string]Status
+	NeedsCommitList  map[string]Status
+	RepoErrorList    map[string]Status
+	NeedsNothingList map[string]Status
 }
 
 func GitStatiGet(publicKeys *ssh.PublicKeys, dirs []string) *Stati {
 	s := &Stati{
-		NeedsSyncList:    make([]Status, 0),
-		NeedsCommitList:  make([]Status, 0),
-		RepoErrorList:    make([]Status, 0),
-		NeedsNothingList: make([]Status, 0),
+		NeedsSyncList:    make(map[string]Status),
+		NeedsCommitList:  make(map[string]Status),
+		RepoErrorList:    make(map[string]Status),
+		NeedsNothingList: make(map[string]Status),
 	}
 
 	checkErr := func(err error, dir string) bool {
 		if err != nil {
 			err = ErrKnownHostsWrap(err)
-			s.RepoErrorList = append(s.RepoErrorList, Status{Dir: dir, Detail: err.Error()})
+			s.RepoErrorList[dir] = Status{Dir: dir, Detail: err.Error()}
 			return true
 		}
 		return false
@@ -102,7 +103,7 @@ REPOS:
 				// do nothing
 			} else if strings.Contains(err.Error(), "knownhosts") {
 				err = fmt.Errorf("problem with known_hosts entry for 'github.com'. try running `ssh-keyscan github.com >> ~/.ssh/known_hosts` on your cli: %v", err)
-				s.RepoErrorList = append(s.RepoErrorList, Status{Dir: dir, Detail: err.Error()})
+				s.RepoErrorList[dir] = Status{Dir: dir, Detail: err.Error()}
 				continue
 			}
 		}
@@ -139,12 +140,12 @@ REPOS:
 		for headBranch, headHash := range refsHeads {
 			originHash, ok := refsOrigin[headBranch]
 			if !ok {
-				s.NeedsSyncList = append(s.NeedsSyncList, Status{Dir: dir + " " + headBranch, Detail: clrYellow + "has no origin branch" + clrReset})
+				s.NeedsSyncList[dir] = Status{Dir: dir + " " + headBranch, Detail: clrYellow + "has no origin branch" + clrReset}
 				continue REPOS
 			}
 
 			if headHash != originHash {
-				s.NeedsSyncList = append(s.NeedsSyncList, Status{Dir: dir + " " + headBranch, Detail: clrYellow + "out of sync with origin" + clrReset})
+				s.NeedsSyncList[dir] = Status{Dir: dir + " " + headBranch, Detail: clrYellow + "out of sync with origin" + clrReset}
 				continue REPOS
 			}
 		}
@@ -162,34 +163,54 @@ REPOS:
 		}
 		for _, status := range stati {
 			if status.Worktree != git.Unmodified {
-				s.NeedsCommitList = append(s.NeedsCommitList, Status{Dir: dir, Detail: clrPurple + "has unstaged changes" + clrReset})
+				s.NeedsCommitList[dir] = Status{Dir: dir, Detail: clrPurple + "has unstaged changes" + clrReset}
 				continue
 			}
 			if status.Staging != git.Unmodified {
-				s.NeedsCommitList = append(s.NeedsCommitList, Status{Dir: dir, Detail: clrPurple + "has staged changes" + clrReset})
+				s.NeedsCommitList[dir] = Status{Dir: dir, Detail: clrPurple + "has staged changes" + clrReset}
 				continue
 			}
 		}
 
-		s.NeedsNothingList = append(s.NeedsNothingList, Status{Dir: dir, Detail: clrGreen + "in sync" + clrReset})
+		s.NeedsNothingList[dir] = Status{Dir: dir, Detail: clrGreen + "in sync" + clrReset}
 	}
 	return s
 }
 
 func StatiPrint(s *Stati) {
-	for _, syncReq := range s.RepoErrorList {
+	sortedKeys := func(m map[string]Status) []string {
+		keys := make([]string, len(m))
+		i := 0
+		for k := range m {
+			keys[i] = k
+			i++
+		}
+		sort.Strings(keys)
+		return keys
+	}
+
+	var keys []string
+	keys = sortedKeys(s.RepoErrorList)
+	for _, key := range keys {
+		syncReq := s.RepoErrorList[key]
 		fmt.Printf(clrRed + " x  " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
 
-	for _, syncReq := range s.NeedsNothingList {
+	keys = sortedKeys(s.NeedsNothingList)
+	for _, key := range keys {
+		syncReq := s.NeedsNothingList[key]
 		fmt.Printf(clrGreen + " \u2714 " + clrReset + " " + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
 
-	for _, syncReq := range s.NeedsCommitList {
+	keys = sortedKeys(s.NeedsCommitList)
+	for _, key := range keys {
+		syncReq := s.NeedsCommitList[key]
 		fmt.Printf(clrPurple + " +  " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
 
-	for _, syncReq := range s.NeedsSyncList {
+	keys = sortedKeys(s.NeedsSyncList)
+	for _, key := range keys {
+		syncReq := s.NeedsSyncList[key]
 		fmt.Printf(clrYellow + "<-> " + clrReset + fmt.Sprintf("%-40s", syncReq.Dir) + " " + syncReq.Detail + NL)
 	}
 }

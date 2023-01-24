@@ -2,15 +2,20 @@ package main
 
 import (
 	"context"
-	"net/url"
+	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	giturls "github.com/whilp/git-urls"
 )
 
 func CMDUpdateTapInit() {
@@ -51,7 +56,6 @@ func BrewTapRepoLocalPath(v *viper.Viper) string {
 }
 
 func CMDUpdateTap(v *viper.Viper, dirs []string) {
-
 	// get public keys for git
 	publicKeys, err := PubKsGet(v)
 	if err != nil {
@@ -74,7 +78,18 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 	s := GitStatiGet(publicKeys, dirs)
 	StatiPrint(s)
 
+	// commit changes to the tap
+	tapRepo, err := git.PlainOpen(BrewTapRepoLocalPath(v))
+	if err != nil {
+		log.Fatalf("error opening git repo for %s: %v", BrewTapRepoLocalPath(v), err)
+	}
+	tapWorktree, err := tapRepo.Worktree()
+	if err != nil {
+		log.Fatalf("error getting worktree for tap repo: %v", err)
+	}
+
 	// for each that is in sync
+	var commitMessage = ""
 	for _, status := range s.NeedsNothingList {
 		// open the repo
 		repo, err := git.PlainOpen(status.Dir)
@@ -91,14 +106,15 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 				log.Errorf("could not get origin remote: %v", err)
 				continue
 			}
-			url, err := url.Parse(remote.Config().URLs[0])
+			urlString := remote.Config().URLs[0]
+			url, err := giturls.Parse(urlString)
 			if err != nil {
 				log.Errorf("could not get origin url: %v", err)
 				continue
 			}
 			parts := strings.Split(url.Path, "/")
 			githubOwner = parts[0]
-			githubRepo = parts[1]
+			githubRepo = strings.TrimSuffix(parts[1], ".git")
 		}
 
 		// get latestReleaseTagName
@@ -114,26 +130,78 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 		}
 
 		// read the tap formula
-		formulaPath := BrewTapRepoLocalPath(v) + "/Formula/" + githubRepo + ".rb"
+		formulaPath, err := filepath.Abs(BrewTapRepoLocalPath(v) + "/Formula/" + githubRepo + ".rb")
+		if err != nil {
+			log.Errorf("could not get Abs path to githubRepo: %v", err)
+			continue
+		}
 		formulaData, err := os.ReadFile(formulaPath) // TODO should be the name of the binary / go module
 		if err != nil {
 			log.Errorf("could not open the Formula at %s: %v", formulaPath, err)
 			continue
 		}
 
-		// update the release
+		// update the tap formula
 		r, err := regexp.Compile("releases/download/.*?/")
 		if err != nil {
 			log.Errorf("could not build regexp for replacement: %v", err)
 			continue
 		}
-		os.Stdout.Write(r.ReplaceAll(formulaData, []byte("releases/download/"+latestReleaseTagName)))
+		formulaData = r.ReplaceAll(formulaData, []byte("releases/download/"+latestReleaseTagName+"/"))
+		os.WriteFile(formulaPath, formulaData, 0660)
 
-		// release
-		/**
-		Command takes the path to the tap repo and sub path.
-		update the formulae.
-		Commit the tap repo and push.
-		**/
+		// add the file to the commit
+		_, err = tapWorktree.Add("Formula/" + githubRepo + ".rb")
+		if err != nil {
+			log.Errorf("could not add %s to tap worktree: %v", formulaPath, err)
+			continue
+		}
+
+		// update the commitMessage
+		commitMessage += githubRepo + " ==> " + latestReleaseTagName + "\n\r"
 	}
+
+	// commit the changes to the tap
+	config, err := config.LoadConfig(config.GlobalScope)
+	if err != nil {
+		log.Fatalf("could not load global git config: %v", err)
+	}
+	commit, err := tapWorktree.Commit(
+		commitMessage,
+		&git.CommitOptions{
+			Author: &object.Signature{
+				Name:  config.Author.Name,
+				Email: config.Author.Email,
+				When:  time.Now(),
+			},
+		})
+	if err != nil {
+		log.Fatalf("could not create commit for tap repo: %v", err)
+	}
+
+	// Confirm
+	fmt.Print("\n\n\n\n")
+	fmt.Print("Please Confirm...\n\n")
+	fmt.Print(commitMessage + "\n")
+	proceedResponse := Prompt("Proceed? [Y/n]: ")
+	if proceedResponse == "" {
+		proceedResponse = "Y"
+	}
+	if proceedResponse != "Y" {
+		log.Warnf("Cancelling update")
+		return
+	}
+
+	// Prints the current HEAD to verify that all worked well.
+	_, err = tapRepo.CommitObject(commit)
+	if err != nil {
+		log.Fatalf("could not commit to tap: %v", err)
+	}
+
+	err = tapRepo.Push(&git.PushOptions{RemoteName: "origin"})
+	if err != nil {
+		log.Fatalf("could not push to tap: %v", err)
+	}
+
+	log.Warnf("Complete")
 }

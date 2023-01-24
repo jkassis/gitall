@@ -14,6 +14,19 @@ import (
 	"golang.org/x/term"
 )
 
+var ringCached keyring.Keyring
+
+func KeyringGet() keyring.Keyring {
+	if ringCached == nil {
+		var err error
+		ringCached, err = keyring.Open(keyring.Config{ServiceName: "gitall"})
+		if err != nil {
+			log.Fatalf("could not access keyring: %v")
+		}
+	}
+	return ringCached
+}
+
 func Prompt(label string) string {
 	fmt.Print(label)
 	reader := bufio.NewReader(os.Stdin)
@@ -68,9 +81,8 @@ func PrvKPasswordFlag(c *cobra.Command, v *viper.Viper) {
 }
 
 func PrvKPasswordGet(v *viper.Viper, prvKFilePath string) (value string, err error) {
-	ring, _ := keyring.Open(keyring.Config{ServiceName: "gitall"})
 	ringKey := prvKFilePath
-	ringItem, err := ring.Get(ringKey)
+	ringItem, err := KeyringGet().Get(ringKey)
 
 	// prompt if required or password not found
 	prompt := v.GetBool(SSH_KEY_PASS_PROMPT)
@@ -85,7 +97,7 @@ func PrvKPasswordGet(v *viper.Viper, prvKFilePath string) (value string, err err
 		value = PromptSecret("Enter ssh key password: ")
 
 		// add
-		err = ring.Set(keyring.Item{Key: ringKey, Data: []byte(value)})
+		err = KeyringGet().Set(keyring.Item{Key: ringKey, Data: []byte(value)})
 		if err != nil {
 			return "", fmt.Errorf("could not save ssh key password in keychain: %v", err)
 		} else {
@@ -108,9 +120,8 @@ func GithubPassFlag(c *cobra.Command, v *viper.Viper) {
 }
 
 func GitHubPassGet(v *viper.Viper) (value string, err error) {
-	ring, _ := keyring.Open(keyring.Config{ServiceName: "gitall"})
 	const ringKey = "ghpass"
-	ringItem, err := ring.Get(ringKey)
+	ringItem, err := KeyringGet().Get(ringKey)
 
 	// prompt if required or password not found
 	prompt := v.GetBool(GITHUB_PASS_PROMPT)
@@ -125,7 +136,7 @@ func GitHubPassGet(v *viper.Viper) (value string, err error) {
 		value = PromptSecret("Enter github.com password: ")
 
 		// add
-		err = ring.Set(keyring.Item{Key: ringKey, Data: []byte(value)})
+		err = KeyringGet().Set(keyring.Item{Key: ringKey, Data: []byte(value)})
 		if err != nil {
 			return "", fmt.Errorf("could not save github.com password in keychain: %v", err)
 		} else {
@@ -148,9 +159,8 @@ func GithubUserFlag(c *cobra.Command, v *viper.Viper) {
 }
 
 func GitHubUserGet(v *viper.Viper) (value string, err error) {
-	ring, _ := keyring.Open(keyring.Config{ServiceName: "gitall"})
 	const ringKey = "ghuser"
-	ringItem, err := ring.Get(ringKey)
+	ringItem, err := KeyringGet().Get(ringKey)
 
 	// prompt if required or password not found
 	prompt := v.GetBool(GITHUB_USER_PROMPT)
@@ -165,7 +175,7 @@ func GitHubUserGet(v *viper.Viper) (value string, err error) {
 		value = Prompt("Enter username for github.com: ")
 
 		// add
-		err = ring.Set(keyring.Item{Key: ringKey, Data: []byte(value)})
+		err = KeyringGet().Set(keyring.Item{Key: ringKey, Data: []byte(value)})
 		if err != nil {
 			return "", fmt.Errorf("could not save github.com username in keychain: %v", err)
 		} else {
