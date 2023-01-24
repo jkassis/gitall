@@ -38,75 +38,71 @@ func PasswordPrompt(label string) string {
 	return s
 }
 
-func PrvKeyFilePathGet(v *viper.Viper) (privateKeyFilePath string, err error) {
-	privateKeyFilePath = v.GetString(SSH_KEY_PATH)
-	if privateKeyFilePath == "~/.ssh/id_rsa" {
+func PrvKeyFilePathGet(v *viper.Viper) (prvKFilePath string, err error) {
+	prvKFilePath = v.GetString(SSH_KEY_PATH)
+	if prvKFilePath == "~/.ssh/id_rsa" {
 		dirname, err := os.UserHomeDir()
 		if err != nil {
 			return "", err
 		}
-		privateKeyFilePath = dirname + "/.ssh/id_rsa"
+		prvKFilePath = dirname + "/.ssh/id_rsa"
 	}
 	return
 }
 
-func PrvKPasswordGet(v *viper.Viper, privateKeyFilePath string) (pkPassword string, err error) {
-	ring, _ := keyring.Open(keyring.Config{
-		ServiceName: "gitall",
-	})
+func PrvKPasswordGet(v *viper.Viper, prvKFilePath string) (prvKPassword string, err error) {
+	ring, _ := keyring.Open(keyring.Config{ServiceName: "gitall"})
+	prvKPasswordItem, err := ring.Get(prvKFilePath)
 
-	pkPasswordItem, err := ring.Get("pkPass")
+	// prompt if required or password not found
 	prompt := v.GetBool(SSH_KEY_PASS_PROMPT)
 	if prompt || err == keyring.ErrKeyNotFound {
 		if prompt {
 			log.Warnf("prompting by request...")
 		} else {
-			log.Warnf("ssh key password not found in keychain for %s", privateKeyFilePath)
+			return "", fmt.Errorf("ssh private key password not found in keychain. use -p to provide it")
 		}
 
 		// prompt
-		pkPassword = PasswordPrompt("Enter password for " + privateKeyFilePath + ": ")
+		prvKPassword = PasswordPrompt("Enter password for " + prvKFilePath + ": ")
 
 		// add
-		err = ring.Set(keyring.Item{
-			Key:  "pkPass",
-			Data: []byte(pkPassword),
-		})
+		err = ring.Set(keyring.Item{Key: prvKFilePath, Data: []byte(prvKPassword)})
 		if err != nil {
-			return "", fmt.Errorf("Error setting password in keychain: %v", err)
+			return "", fmt.Errorf("could not save password in keychain: %v", err)
 		} else {
-			log.Warnf("Saved password in keychain for %s", privateKeyFilePath)
+			log.Warnf("saved password in keychain for %s", prvKFilePath)
 		}
 	} else if err != nil {
-		return "", fmt.Errorf("ssh key password not provided and could not lookup in keychain: %v", err)
+		return "", fmt.Errorf("could not query keychain for ssh private key password: %v", err)
 	} else {
-		pkPassword = string(pkPasswordItem.Data)
-		log.Warnf("got password from keychain for %s. use -p to override with prompt", privateKeyFilePath)
+		prvKPassword = string(prvKPasswordItem.Data)
+		log.Warnf("got password from keychain for %s. use -p to override with prompt", prvKFilePath)
 	}
 	return
 }
 
 // get publicKeys
 func PubKsGet(v *viper.Viper) (publicKeys *ssh.PublicKeys, err error) {
-	privateKeyFilePath, err := PrvKeyFilePathGet(v)
+	prvKFilePath, err := PrvKeyFilePathGet(v)
 	if err != nil {
 		return nil, fmt.Errorf("could not get privateKeyFilePath: %v", err)
 	}
 
-	pkPassword, err := PrvKPasswordGet(v, privateKeyFilePath)
+	prvKPassword, err := PrvKPasswordGet(v, prvKFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("could not get private key password: %v", err)
 	}
 
-	_, err = os.Stat(privateKeyFilePath)
+	_, err = os.Stat(prvKFilePath)
 	if err != nil {
 		return nil, fmt.Errorf(clrRed + "read file %s failed %s\n" + clrReset)
 	}
-	bytes, err := os.ReadFile(privateKeyFilePath)
+	bytes, err := os.ReadFile(prvKFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read private key file: %v", err)
 	}
-	publicKeys, err = ssh.NewPublicKeys("git", bytes, pkPassword)
+	publicKeys, err = ssh.NewPublicKeys("git", bytes, prvKPassword)
 	if err != nil {
 		return nil, fmt.Errorf("could not generate signer keys: %v", err)
 	}
