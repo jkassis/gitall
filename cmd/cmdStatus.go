@@ -20,7 +20,8 @@ func CMDStatusInit() {
 		},
 	}
 
-	CMDGitConfig(c, v)
+	PrvKFilePathFlag(c, v)
+	PrvKPasswordFlag(c, v)
 	MAIN.AddCommand(c)
 }
 

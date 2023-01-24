@@ -20,7 +20,8 @@ func CMDUpdateTapInit() {
 		},
 	}
 
-	CMDGitConfig(c, v)
+	PrvKFilePathFlag(c, v)
+	PrvKPasswordFlag(c, v)
 	MAIN.AddCommand(c)
 }
 
@@ -35,16 +36,6 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 
 	// for _, status := range s.NeedsNothingList {
 	// 	// release
-	// 	/**
-	// 	Tar and gz built objects
-	// 	Do not ignore build directory
-	// 	Change build dir to dist directory
-	// 	Invoke semvar to choose the version
-	// 	Commit and tag the repo using the new version
-	// 	Push the version
-	// 	Run gh release to release the binaries to GitHub
-	// 	**/
-
 	// 	/**
 	// 	Command takes the path to the tap repo and sub path.
 	// 	update the formulae.
