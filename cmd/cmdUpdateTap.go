@@ -113,8 +113,11 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 		// get latestReleaseTagName
 		var latestReleaseTagName string
 		var latestReleaseAssets []*github.ReleaseAsset
+		var homeURL string
 		{
 			ctx := context.Background()
+
+			// get latestRelease
 			latestRelease, _, err := client.Repositories.GetLatestRelease(ctx, githubOwner, githubRepo)
 			if err != nil {
 				log.Errorf("could not get latest release for %s/%s: %v", githubOwner, githubRepo, err)
@@ -122,11 +125,19 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 			}
 			latestReleaseTagName = latestRelease.GetTagName()
 			latestReleaseAssets = latestRelease.Assets
+
+			// get repo homepage
+			repo, _, err := client.Repositories.Get(ctx, githubOwner, githubRepo)
+			if err != nil {
+				log.Errorf("could not get repo for %s/%s: %v", githubOwner, githubRepo, err)
+				continue
+			}
+			homeURL = *repo.HTMLURL
 		}
 
 		formula, err := FormulaNew(
 			githubRepo,
-			githubURL,
+			homeURL,
 			latestReleaseTagName,
 			latestReleaseAssets)
 
@@ -152,7 +163,6 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 			log.Errorf("could not generate homebrew formula: %v", err)
 			continue
 		}
-
 		os.WriteFile(formulaPath, formulaData, 0660)
 
 		// add the file to the commit
@@ -166,7 +176,20 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 		commitMessage += githubRepo + " ==> " + latestReleaseTagName + "\n\r"
 	}
 
-	// commit the changes to the tap
+	// Confirm
+	fmt.Print("\n\n\n\n")
+	fmt.Print("Please Confirm...\n\n")
+	fmt.Print(commitMessage + "\n")
+	proceedResponse := Prompt("Proceed? [Y/n]: ")
+	if proceedResponse == "" {
+		proceedResponse = "Y"
+	}
+	if proceedResponse != "Y" {
+		log.Warnf("Cancelling update")
+		return
+	}
+
+	// Commit changes to the tap.
 	config, err := config.LoadConfig(config.GlobalScope)
 	if err != nil {
 		log.Fatalf("could not load global git config: %v", err)
@@ -184,25 +207,13 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 		log.Fatalf("could not create commit for tap repo: %v", err)
 	}
 
-	// Confirm
-	fmt.Print("\n\n\n\n")
-	fmt.Print("Please Confirm...\n\n")
-	fmt.Print(commitMessage + "\n")
-	proceedResponse := Prompt("Proceed? [Y/n]: ")
-	if proceedResponse == "" {
-		proceedResponse = "Y"
-	}
-	if proceedResponse != "Y" {
-		log.Warnf("Cancelling update")
-		return
-	}
-
-	// Prints the current HEAD to verify that all worked well.
+	log.Infof("committing changes to the tap")
 	_, err = tapRepo.CommitObject(commit)
 	if err != nil {
 		log.Fatalf("could not commit to tap: %v", err)
 	}
 
+	log.Infof("pushing the tap to origin")
 	err = tapRepo.Push(&git.PushOptions{RemoteName: "origin"})
 	if err != nil {
 		log.Fatalf("could not push to tap: %v", err)

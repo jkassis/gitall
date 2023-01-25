@@ -185,7 +185,7 @@ func GitHubUserGet(v *viper.Viper) (value string, err error) {
 		return "", fmt.Errorf("could not query keychain for github.com username: %v", err)
 	} else {
 		value = string(ringItem.Data)
-		log.Warnf("got github.com username from keychain. use -ghpass to override with prompt")
+		log.Warnf("got github.com username from keychain. use -ghuser to override with prompt")
 	}
 	return
 }
