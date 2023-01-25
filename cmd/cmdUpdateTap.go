@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/google/go-github/v49/github"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -62,13 +62,6 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 		log.Fatalf("could not get publicKeys: %v", err)
 	}
 
-	// ctx := context.Background()
-	// ts := oauth2.StaticTokenSource(
-	// 	&oauth2.Token{AccessToken: "token"},
-	// )
-	// tc := oauth2.NewClient(ctx, ts)
-	// client := github.NewClient(tc)
-
 	client, err := GithubClientGet(v)
 	if err != nil {
 		log.Fatal("could not get github client: %v", err)
@@ -99,15 +92,15 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 		}
 
 		// get the github owner and repo of the origin url
-		var githubOwner, githubRepo string
+		var githubURL, githubOwner, githubRepo string
 		{
 			remote, err := repo.Remote("origin")
 			if err != nil {
 				log.Errorf("could not get origin remote: %v", err)
 				continue
 			}
-			urlString := remote.Config().URLs[0]
-			url, err := giturls.Parse(urlString)
+			githubURL = remote.Config().URLs[0]
+			url, err := giturls.Parse(githubURL)
 			if err != nil {
 				log.Errorf("could not get origin url: %v", err)
 				continue
@@ -119,6 +112,7 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 
 		// get latestReleaseTagName
 		var latestReleaseTagName string
+		var latestReleaseAssets []*github.ReleaseAsset
 		{
 			ctx := context.Background()
 			latestRelease, _, err := client.Repositories.GetLatestRelease(ctx, githubOwner, githubRepo)
@@ -127,27 +121,38 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 				continue
 			}
 			latestReleaseTagName = latestRelease.GetTagName()
+			latestReleaseAssets = latestRelease.Assets
 		}
 
-		// read the tap formula
+		formula, err := FormulaNew(
+			githubRepo,
+			githubURL,
+			latestReleaseTagName,
+			latestReleaseAssets)
+
+		if err != nil {
+			log.Errorf("could not create new formula: %v", err)
+			continue
+		}
+
+		formulaData, err := formula.Render()
+		if err != nil {
+			log.Errorf("could not render formula: %v", err)
+			continue
+		}
+		fmt.Print(string(formulaData))
+
+		// write the tap formula
 		formulaPath, err := filepath.Abs(BrewTapRepoLocalPath(v) + "/Formula/" + githubRepo + ".rb")
 		if err != nil {
 			log.Errorf("could not get Abs path to githubRepo: %v", err)
 			continue
 		}
-		formulaData, err := os.ReadFile(formulaPath) // TODO should be the name of the binary / go module
 		if err != nil {
-			log.Errorf("could not open the Formula at %s: %v", formulaPath, err)
+			log.Errorf("could not generate homebrew formula: %v", err)
 			continue
 		}
 
-		// update the tap formula
-		r, err := regexp.Compile("releases/download/.*?/")
-		if err != nil {
-			log.Errorf("could not build regexp for replacement: %v", err)
-			continue
-		}
-		formulaData = r.ReplaceAll(formulaData, []byte("releases/download/"+latestReleaseTagName+"/"))
 		os.WriteFile(formulaPath, formulaData, 0660)
 
 		// add the file to the commit
