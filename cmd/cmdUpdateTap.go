@@ -81,6 +81,10 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 		log.Fatalf("error getting worktree for tap repo: %v", err)
 	}
 
+	if len(s.NeedsNothingList) == 0 {
+		log.Fatal("nothing to do...")
+	}
+
 	// for each that is in sync
 	var commitMessage = ""
 	for _, status := range s.NeedsNothingList {
@@ -135,6 +139,7 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 			homeURL = *repo.HTMLURL
 		}
 
+		// make the tap formula
 		formula, err := FormulaNew(
 			githubRepo,
 			homeURL,
@@ -146,12 +151,13 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 			continue
 		}
 
+		// render the tap formula
 		formulaData, err := formula.Render()
 		if err != nil {
 			log.Errorf("could not render formula: %v", err)
 			continue
 		}
-		fmt.Print(string(formulaData))
+		log.Debug(string(formulaData))
 
 		// write the tap formula
 		formulaPath, err := filepath.Abs(BrewTapRepoLocalPath(v) + "/Formula/" + githubRepo + ".rb")
@@ -165,7 +171,7 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 		}
 		os.WriteFile(formulaPath, formulaData, 0660)
 
-		// add the file to the commit
+		// add the formula to the tap commit
 		_, err = tapWorktree.Add("Formula/" + githubRepo + ".rb")
 		if err != nil {
 			log.Errorf("could not add %s to tap worktree: %v", formulaPath, err)
@@ -176,7 +182,7 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 		commitMessage += githubRepo + " ==> " + latestReleaseTagName + "\n\r"
 	}
 
-	// Confirm
+	// confirm
 	fmt.Print("\n\n\n\n")
 	fmt.Print("Please Confirm...\n\n")
 	fmt.Print(commitMessage + "\n")
@@ -189,7 +195,7 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 		return
 	}
 
-	// Commit changes to the tap.
+	// create the commit for the tap changes
 	config, err := config.LoadConfig(config.GlobalScope)
 	if err != nil {
 		log.Fatalf("could not load global git config: %v", err)
@@ -207,17 +213,20 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 		log.Fatalf("could not create commit for tap repo: %v", err)
 	}
 
+	// commit the tap changes
 	log.Infof("committing changes to the tap")
 	_, err = tapRepo.CommitObject(commit)
 	if err != nil {
 		log.Fatalf("could not commit to tap: %v", err)
 	}
 
+	// push the tap changes to the origin
 	log.Infof("pushing the tap to origin")
 	err = tapRepo.Push(&git.PushOptions{RemoteName: "origin"})
 	if err != nil {
 		log.Fatalf("could not push to tap: %v", err)
 	}
 
+	// done!
 	log.Warnf("Complete")
 }
