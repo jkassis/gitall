@@ -1,13 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
 
 	semver "github.com/Masterminds/semver/v3"
 	nfpm "github.com/goreleaser/nfpm/v2"
@@ -89,11 +89,11 @@ func main() {
 }
 
 func setup() error {
-	return Exec("docker", "pull", "jkassis/xgo:1.19.5")
+	return ExecAndStream("docker", "pull", "jkassis/xgo:1.19.5")
 }
 
 func build() error {
-	return Exec("go", "build", "-o", "dist/main", "./cmd/")
+	return ExecAndStream("go", "build", "-o", "dist/main", "./cmd/")
 }
 
 // This is complicated...
@@ -134,7 +134,7 @@ func buildx() (err error) {
 		os.MkdirAll(xgoCacheDir, os.ModePerm)
 	}
 
-	err = Exec(
+	err = ExecAndStream(
 		"docker",
 		"run", "--rm",
 		"-v", pwd+"/build:/build", // build volume
@@ -248,47 +248,43 @@ func pack() (err error) {
 }
 
 func release() error {
-	stdin := bufio.NewReader(os.Stdin)
-
-	// make sure the user runs `gh auth login` first
-	fmt.Printf("You must have a current authorized session with github cli before running this.\n")
-	fmt.Printf("Have you run `gh auth login` lately?\n")
-	fmt.Printf("Y/N [Y]: ")
-	respb, _, err := stdin.ReadLine()
-	resp := string(respb)
+	// prompt the user to login to gh as needed
+	_, authStatusErr, err := Exec("gh", "auth", "status")
 	if err != nil {
-		return fmt.Errorf("error reading input: %v", err)
-	}
-	if resp != "" && resp != "Y" && resp != "y" {
-		fmt.Printf("No problem. Let's do it.\n")
-		err = Exec("gh", "auth", "login")
-		if err != nil {
-			return fmt.Errorf("error connecting with github: %v", err)
+		if strings.Contains(authStatusErr, "not logged into") {
+			err = ExecAndStream("gh", "auth", "login")
+			if err != nil {
+				return fmt.Errorf("error connecting with github: %v", err)
+			}
+		} else {
+			return fmt.Errorf("gh auth status error: %v", err)
 		}
 	}
 
 	// check for local changes
-	fmt.Printf("git: checking for changes")
-	statusResp, err := ExecAndGet("git", "status", "--porcelain")
-	if err != nil || len(statusResp) > 0 {
+	fmt.Printf("git: checking for changes\n")
+	gitStatusOut, _, err := Exec("git", "status", "--porcelain")
+	if err != nil || len(gitStatusOut) > 0 {
 		return fmt.Errorf("git: there are uncommitted changes to this repo. Commit changes and build with bin/build.sh first: %v", err)
 	}
-
-	fmt.Printf("git: no changes")
+	fmt.Printf("git: no changes\n")
 
 	// check that branches are in sync
-	fmt.Printf("git: checking that local branch is in sync with origin")
-	branch, err := ExecAndGet("git", "rev-parse", "--abbrev-ref", "HEAD")
+	fmt.Printf("git: checking that local branch is in sync with origin\n")
+	branch, _, err := Exec("git", "rev-parse", "--abbrev-ref", "HEAD")
+	branch = strings.TrimSpace(branch)
 	if err != nil {
 		return fmt.Errorf("git: problem getting branch info: %v", err)
 	}
 
-	localRev, err := ExecAndGet("git", "rev-parse", branch)
+	localRev, _, err := Exec("git", "rev-parse", branch)
+	localRev = strings.TrimSpace(localRev)
 	if err != nil {
 		return fmt.Errorf("git: problem getting local branch revision: %v", err)
 	}
 
-	remoteRev, err := ExecAndGet("git", "rev-parse", "origin/"+branch)
+	remoteRev, _, err := Exec("git", "rev-parse", "origin/"+branch)
+	remoteRev = strings.TrimSpace(remoteRev)
 	if err != nil {
 		return fmt.Errorf("git: problem getting remote branch revision: %v", err)
 	}
@@ -297,10 +293,10 @@ func release() error {
 		return fmt.Errorf("git: %s is not in sync with origin/%s. You need to rebase or push first", branch, branch)
 	}
 
-	fmt.Printf("git: branches in sync")
+	fmt.Printf("git: branches in sync\n")
 
 	// clean up the dist directory
-	fmt.Printf("cleaning dist dir")
+	fmt.Printf("cleaning dist dir\n")
 	filepath.Walk("./dist", func(fp string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -317,7 +313,7 @@ func release() error {
 	})
 
 	// bump the minor release version
-	fmt.Printf("bumping version.patch")
+	fmt.Printf("bumping version.patch\n")
 	v, err := semver.NewVersion(viper.GetString("release"))
 	if err != nil {
 		return err
@@ -332,43 +328,48 @@ func release() error {
 	}
 
 	// tag the release
-	fmt.Printf("tagging the release with %s", v.String())
-	err = Exec("git", "tag", v.String())
+	fmt.Printf("tagging the release with %s\n", v.String())
+	err = ExecAndStream("git", "tag", v.String())
+	if err != nil {
+		return fmt.Errorf("troubling tagging the release with git: %v", err)
+	}
+
+	// push tags
+	fmt.Printf("pushing tags %v\n", v.String())
+	err = ExecAndStream("git", "push", "--tags")
 	if err != nil {
 		return fmt.Errorf("troubling tagging the release with git: %v", err)
 	}
 
 	// create the github release
-	fmt.Printf("creating the github release")
-	err = Exec("gh", "release", "create", v.String(), "dist/")
+	fmt.Printf("creating the github release\n")
+	err = ExecAndStream("gh", "release", "create", v.String(), "dist/")
 	if err != nil {
 		return fmt.Errorf("trouble creating the github release: %v", err)
 	}
 	return nil
 }
 
-func Exec(name string, args ...string) error {
+func ExecAndStream(name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	return cmd.Run()
 }
 
-func ExecAndGet(name string, args ...string) (string, error) {
-	r, w := io.Pipe()
+func Exec(name string, args ...string) (string, string, error) {
 	cmd := exec.Command(name, args...)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = w
+	errR, errW := io.Pipe()
+	cmd.Stderr = errW
+	outR, outW := io.Pipe()
+	cmd.Stdout = outW
 
-	var stdout []byte
+	var stdout, stderr []byte
 	eg := new(errgroup.Group)
-	eg.Go(func() (err error) { err = cmd.Run(); w.Close(); return })
-	eg.Go(func() (err error) {
-		stdout, err = io.ReadAll(r)
-		return
-	})
-
-	return string(stdout), eg.Wait()
+	eg.Go(func() (err error) { stdout, err = io.ReadAll(outR); return })
+	eg.Go(func() (err error) { stderr, err = io.ReadAll(errR); return })
+	eg.Go(func() (err error) { err = cmd.Run(); outW.Close(); errW.Close(); return })
+	return string(stdout), string(stderr), eg.Wait()
 }
 
 func CP(src, dst string) error {
