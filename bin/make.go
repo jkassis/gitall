@@ -190,7 +190,7 @@ func pack() (err error) {
 				Description:   "CLI to perform git operations on multiple repos at once.",
 				Homepage:      "https://github.com/jkassis/gitall",
 				License:       "CC0_1.0",
-				Changelog:     "changelog.yaml",
+				Changelog:     "changelog.md",
 				Overridables: nfpm.Overridables{
 					Contents: files.Contents{
 						&files.Content{
@@ -305,10 +305,13 @@ func release() error {
 	})
 
 	// copy files from build to dist
+	var files []string
+	files = make([]string, 0)
 	filepath.Walk("./build", func(fp string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
+		files = append(files, "./dist"+path.Base(fp))
 		return CP(fp, "./dist"+path.Base(fp))
 	})
 
@@ -343,7 +346,7 @@ func release() error {
 
 	// create the github release
 	fmt.Printf("creating the github release\n")
-	err = ExecAndStream("gh", "release", "create", v.String(), "dist/")
+	err = ExecAndStream("gh", append([]string{"release", "create", v.String()}, files...)...)
 	if err != nil {
 		return fmt.Errorf("trouble creating the github release: %v", err)
 	}
