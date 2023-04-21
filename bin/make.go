@@ -343,6 +343,13 @@ func release() error {
 		return fmt.Errorf("trouble commiting: %v", err)
 	}
 
+	// push
+	fmt.Printf("pushing%v\n", v.String())
+	err = ExecAndStream("git", "push")
+	if err != nil {
+		return fmt.Errorf("trouble pushing: %v", err)
+	}
+
 	// tag the release
 	fmt.Printf("tagging the release with %s\n", v.String())
 	err = ExecAndStream("git", "tag", v.String())
