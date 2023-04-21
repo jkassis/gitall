@@ -56,6 +56,18 @@
       "mode": "debug",
       "request": "launch",
       "type": "go"
-    }
+    },
+    {
+      "name": "make build",
+      "program": "${workspaceFolder}/bin/make.go",
+      "args": ["build"],
+
+      "console": "integratedTerminal",
+      "cwd": ".",
+      "env": {},
+      "mode": "debug",
+      "request": "launch",
+      "type": "go"
+    },
   ]
 }
