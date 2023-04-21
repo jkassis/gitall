@@ -178,8 +178,8 @@ func pack() (err error) {
 		}
 		// clean up the dist directory
 		fmt.Printf("cleaning dist dir\n")
-		filepath.WalkDir("./dist", func(fp string, dirEntry os.DirEntry, err error) error {
-			if err != nil {
+		filepath.WalkDir("dist", func(fp string, dirEntry os.DirEntry, err error) error {
+			if err != nil || fp == "dist" {
 				return err
 			}
 			return os.Remove(fp)
@@ -315,7 +315,6 @@ func release() error {
 	})
 
 	// bump the patch version
-	fmt.Printf("bumping version.patch\n")
 	v, err := semver.NewVersion(viper.GetString("release"))
 	if err != nil {
 		return err
@@ -323,24 +322,39 @@ func release() error {
 
 	*v = v.IncPatch()
 
+	fmt.Printf("bumping .semver file to %s\n", v.String())
 	viper.Set("release", v)
 	err = viper.WriteConfig()
 	if err != nil {
 		return fmt.Errorf("could not write semver: %v", err)
 	}
 
+	// commit
+	fmt.Printf("adding .semver for a new commit\n")
+	err = ExecAndStream("git", "add", ".semver")
+	if err != nil {
+		return fmt.Errorf("trouble adding: %v", err)
+	}
+
+	// commit
+	fmt.Printf("commiting\n")
+	err = ExecAndStream("git", "commit", "-m", ".semver bump")
+	if err != nil {
+		return fmt.Errorf("trouble commiting: %v", err)
+	}
+
 	// tag the release
 	fmt.Printf("tagging the release with %s\n", v.String())
 	err = ExecAndStream("git", "tag", v.String())
 	if err != nil {
-		return fmt.Errorf("troubling tagging the release with git: %v", err)
+		return fmt.Errorf("trouble tagging the release with git: %v", err)
 	}
 
 	// push tags
 	fmt.Printf("pushing tags %v\n", v.String())
 	err = ExecAndStream("git", "push", "--tags")
 	if err != nil {
-		return fmt.Errorf("troubling tagging the release with git: %v", err)
+		return fmt.Errorf("trouble tagging the release with git: %v", err)
 	}
 
 	// create the github release
