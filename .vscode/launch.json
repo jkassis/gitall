@@ -69,5 +69,17 @@
       "request": "launch",
       "type": "go"
     },
+    {
+      "name": "make release",
+      "program": "${workspaceFolder}/bin/make.go",
+      "args": ["release"],
+
+      "console": "integratedTerminal",
+      "cwd": ".",
+      "env": {},
+      "mode": "debug",
+      "request": "launch",
+      "type": "go"
+    },
   ]
 }

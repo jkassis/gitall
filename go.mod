@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/99designs/keyring v1.2.2
+	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/google/go-github/v49 v49.1.0
 	github.com/goreleaser/nfpm/v2 v2.28.0
@@ -11,6 +12,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.15.0
 	github.com/whilp/git-urls v1.0.0
+	golang.org/x/sync v0.1.0
 	golang.org/x/term v0.5.0
 	golang.org/x/text v0.7.0
 )
@@ -20,7 +22,6 @@ require (
 	github.com/AlekSi/pointer v1.2.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
-	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible // indirect
 	github.com/Microsoft/go-winio v0.6.0 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20220824120805-4b6e5c587895 // indirect

@@ -1,48 +1,99 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 
+	semver "github.com/Masterminds/semver/v3"
 	nfpm "github.com/goreleaser/nfpm/v2"
 	_ "github.com/goreleaser/nfpm/v2/apk"
 	_ "github.com/goreleaser/nfpm/v2/arch"
 	_ "github.com/goreleaser/nfpm/v2/deb"
 	"github.com/goreleaser/nfpm/v2/files"
 	_ "github.com/goreleaser/nfpm/v2/rpm"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"golang.org/x/sync/errgroup"
 )
 
+var (
+	rootCmd = &cobra.Command{
+		Use:   "make",
+		Short: "purego makefile",
+		Long:  "The build, release, and distro tool for this project. Compile and run it on the fly with `go run make.go`.",
+	}
+)
+
+func init() {
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	viper.SetConfigName(".semver")
+	_ = viper.ReadInConfig()
+
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "setup",
+		Short: "setup for build and release",
+		Long:  "pulls docker images and manages dependencies",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return setup()
+		},
+	})
+
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "build",
+		Short: "basic build",
+		Long:  "a simple wrapper for `go build -o build/main ./cmd/`",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return build()
+		},
+	})
+
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "buildx",
+		Short: "cross platform build",
+		Long:  "runs cross platform builds using a docker image configured specifically for this",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return buildx()
+		},
+	})
+
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "package",
+		Short: "packages artifacts for target distros",
+		Long:  "uses nfpm to generate packages for different distros",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return pack()
+		},
+	})
+
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "release",
+		Short: "releases artifacts to github as a versioned release",
+		Long:  "uses github cli",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return release()
+		},
+	})
+}
+
 func main() {
-	usage := func() {
-		fmt.Fprintf(os.Stderr, "Usage: make [build|release]\n")
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
+}
 
-	if len(os.Args) < 2 {
-		usage()
-	}
+func setup() error {
+	return Exec("docker", "pull", "jkassis/xgo:1.19.5")
+}
 
-	var err error
-	cmd := os.Args[1]
-	switch cmd {
-	case "build":
-		err = build()
-	case "release":
-		err = release()
-	default:
-		usage()
-	}
-
-	if err != nil {
-		fmt.Fprint(os.Stderr, err.Error())
-		fmt.Fprintln(os.Stderr, "")
-		os.Exit(1)
-	}
-	fmt.Fprintf(os.Stdout, "success")
-	os.Exit(0)
+func build() error {
+	return Exec("go", "build", "-o", "dist/main", "./cmd/")
 }
 
 // This is complicated...
@@ -52,25 +103,25 @@ func main() {
 //
 // Needed environment variables:
 //
-//	DEPS           - Optional list of C dependency packages to build
+//	DEPS           - Optional list of C dependency packages to buildx
 //	ARGS           - Optional arguments to pass to C dependency configure scripts
 //	OUT            - Optional output prefix to override the package name
 //	FLAG_V         - Optional verbosity flag to set on the Go builder
-//	FLAG_X         - Optional flag to print the build progress commands
+//	FLAG_X         - Optional flag to print the buildx progress commands
 //	FLAG_RACE      - Optional race flag to set on the Go builder
 //	FLAG_TAGS      - Optional tag flag to set on the Go builder
 //	FLAG_LDFLAGS   - Optional ldflags flag to set on the Go builder
 //	FLAG_BUILDMODE - Optional buildmode flag to set on the Go builder
 //	FLAG_TRIMPATH  - Optional trimpath flag to set on the Go builder
-//	TARGETS        - Comma separated list of build targets to compile for
+//	TARGETS        - Comma separated list of buildx targets to compile for
 //	GO_VERSION     - Bootstrapped version of Go to disable uncupported targets
 //	EXT_GOPATH     - GOPATH elements mounted from the host filesystem
 //
-// note that cross architecture build with CGO dependencies can only happen
+// note that cross architecture buildx with CGO dependencies can only happen
 // with dedicated hardware.
 //
-// build uses docker for cross platform builds
-func build() (err error) {
+// buildx uses docker for cross platform builds
+func buildx() (err error) {
 	var pwd string
 	pwd, err = os.Getwd()
 	if err != nil {
@@ -83,7 +134,7 @@ func build() (err error) {
 		os.MkdirAll(xgoCacheDir, os.ModePerm)
 	}
 
-	cmd := exec.Command(
+	err = Exec(
 		"docker",
 		"run", "--rm",
 		"-v", pwd+"/build:/build", // build volume
@@ -97,9 +148,6 @@ func build() (err error) {
 		`-e",  "TARGETS="linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64`,
 		"jkassis/xgo:1.19.5",
 		"./cmd/")
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	err = cmd.Run()
 	if err != nil {
 		return fmt.Errorf("docker error: %v", err)
 	}
@@ -113,7 +161,7 @@ func build() (err error) {
 	})
 }
 
-func release() (err error) {
+func pack() (err error) {
 	type Job [4]string
 
 	doOne := func(job Job) error {
@@ -197,4 +245,137 @@ func release() (err error) {
 	}
 
 	return nil
+}
+
+func release() error {
+	stdin := bufio.NewReader(os.Stdin)
+
+	// make sure the user runs `gh auth login` first
+	fmt.Printf("You must have a current authorized session with github cli before running this.\n")
+	fmt.Printf("Have you run `gh auth login` lately?\n")
+	fmt.Printf("Y/N [Y]: ")
+	respb, _, err := stdin.ReadLine()
+	resp := string(respb)
+	if err != nil {
+		return fmt.Errorf("error reading input: %v", err)
+	}
+	if resp != "" && resp != "Y" && resp != "y" {
+		fmt.Printf("No problem. Let's do it.\n")
+		err = Exec("gh", "auth", "login")
+		if err != nil {
+			return fmt.Errorf("error connecting with github: %v", err)
+		}
+	}
+
+	// check for local changes
+	fmt.Printf("git: checking for changes")
+	statusResp, err := ExecAndGet("git", "status", "--porcelain")
+	if err != nil || len(statusResp) > 0 {
+		return fmt.Errorf("git: there are uncommitted changes to this repo. Commit changes and build with bin/build.sh first: %v", err)
+	}
+
+	fmt.Printf("git: no changes")
+
+	// check that branches are in sync
+	fmt.Printf("git: checking that local branch is in sync with origin")
+	branch, err := ExecAndGet("git", "rev-parse", "--abbrev-ref", "HEAD")
+	if err != nil {
+		return fmt.Errorf("git: problem getting branch info: %v", err)
+	}
+
+	localRev, err := ExecAndGet("git", "rev-parse", branch)
+	if err != nil {
+		return fmt.Errorf("git: problem getting local branch revision: %v", err)
+	}
+
+	remoteRev, err := ExecAndGet("git", "rev-parse", "origin/"+branch)
+	if err != nil {
+		return fmt.Errorf("git: problem getting remote branch revision: %v", err)
+	}
+
+	if localRev != remoteRev {
+		return fmt.Errorf("git: %s is not in sync with origin/%s. You need to rebase or push first", branch, branch)
+	}
+
+	fmt.Printf("git: branches in sync")
+
+	// clean up the dist directory
+	fmt.Printf("cleaning dist dir")
+	filepath.Walk("./dist", func(fp string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		return os.Remove(fp)
+	})
+
+	// copy files from build to dist
+	filepath.Walk("./build", func(fp string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		return CP(fp, "./dist"+path.Base(fp))
+	})
+
+	// bump the minor release version
+	fmt.Printf("bumping version.patch")
+	v, err := semver.NewVersion(viper.GetString("release"))
+	if err != nil {
+		return err
+	}
+
+	*v = v.IncPatch()
+
+	viper.Set("release", v)
+	err = viper.WriteConfig()
+	if err != nil {
+		return fmt.Errorf("could not write semver: %v", err)
+	}
+
+	// tag the release
+	fmt.Printf("tagging the release with %s", v.String())
+	err = Exec("git", "tag", v.String())
+	if err != nil {
+		return fmt.Errorf("troubling tagging the release with git: %v", err)
+	}
+
+	// create the github release
+	fmt.Printf("creating the github release")
+	err = Exec("gh", "release", "create", v.String(), "dist/")
+	if err != nil {
+		return fmt.Errorf("trouble creating the github release: %v", err)
+	}
+	return nil
+}
+
+func Exec(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
+}
+
+func ExecAndGet(name string, args ...string) (string, error) {
+	r, w := io.Pipe()
+	cmd := exec.Command(name, args...)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = w
+
+	var stdout []byte
+	eg := new(errgroup.Group)
+	eg.Go(func() (err error) { err = cmd.Run(); w.Close(); return })
+	eg.Go(func() (err error) {
+		stdout, err = io.ReadAll(r)
+		return
+	})
+
+	return string(stdout), eg.Wait()
+}
+
+func CP(src, dst string) error {
+	input, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile("./dist"+path.Base(dst), input, 0644)
 }
