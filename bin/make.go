@@ -153,7 +153,7 @@ func buildx() (err error) {
 	}
 
 	// change permissions of all executables
-	return filepath.Walk(pwd+"/build", func(path string, info os.FileInfo, err error) error {
+	return filepath.WalkDir(pwd+"/build", func(path string, _ os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -176,6 +176,14 @@ func pack() (err error) {
 		if err != nil {
 			return err
 		}
+		// clean up the dist directory
+		fmt.Printf("cleaning dist dir\n")
+		filepath.WalkDir("./dist", func(fp string, dirEntry os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			return os.Remove(fp)
+		})
 
 		config := &nfpm.Config{
 			Info: nfpm.Info{
@@ -190,7 +198,7 @@ func pack() (err error) {
 				Description:   "CLI to perform git operations on multiple repos at once.",
 				Homepage:      "https://github.com/jkassis/gitall",
 				License:       "CC0_1.0",
-				Changelog:     "changelog.yaml",
+				Changelog:     "changelog.md",
 				Overridables: nfpm.Overridables{
 					Contents: files.Contents{
 						&files.Content{
@@ -295,24 +303,18 @@ func release() error {
 
 	fmt.Printf("git: branches in sync\n")
 
-	// clean up the dist directory
-	fmt.Printf("cleaning dist dir\n")
-	filepath.Walk("./dist", func(fp string, info os.FileInfo, err error) error {
-		if err != nil {
+	// get list of files
+	var files []string
+	files = make([]string, 0)
+	filepath.WalkDir("dist", func(fp string, _ os.DirEntry, err error) error {
+		if err != nil || fp == "dist" {
 			return err
 		}
-		return os.Remove(fp)
+		files = append(files, fp)
+		return nil
 	})
 
-	// copy files from build to dist
-	filepath.Walk("./build", func(fp string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		return CP(fp, "./dist"+path.Base(fp))
-	})
-
-	// bump the minor release version
+	// bump the patch version
 	fmt.Printf("bumping version.patch\n")
 	v, err := semver.NewVersion(viper.GetString("release"))
 	if err != nil {
@@ -343,7 +345,7 @@ func release() error {
 
 	// create the github release
 	fmt.Printf("creating the github release\n")
-	err = ExecAndStream("gh", "release", "create", v.String(), "dist/")
+	err = ExecAndStream("gh", append([]string{"release", "create", v.String()}, files...)...)
 	if err != nil {
 		return fmt.Errorf("trouble creating the github release: %v", err)
 	}
