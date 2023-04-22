@@ -25,7 +25,13 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "make",
 		Short: "purego makefile",
-		Long:  "The build, release, and distro tool for this project. Compile and run it on the fly with `go run make.go`.",
+		Long: `The build, release, and distro tool for this project. Compile and run it on the fly with 'go run make.go'.
+This depends on the availability of...
+
+   gh: github command line tool
+	 docker: container management
+	 dpkg: debian package development
+		`,
 	}
 )
 
@@ -89,7 +95,12 @@ func main() {
 }
 
 func setup() error {
-	return ExecAndStream("docker", "pull", "jkassis/xgo:1.19.5")
+	err := ExecAndStream("docker", "pull", "jkassis/xgo:1.19.5")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func build() error {
@@ -164,6 +175,15 @@ func buildx() (err error) {
 func pack() (err error) {
 	type Job [4]string
 
+	// clean up the dist directory
+	fmt.Printf("cleaning dist dir\n")
+	filepath.WalkDir("dist", func(fp string, dirEntry os.DirEntry, err error) error {
+		if err != nil || fp == "dist" {
+			return err
+		}
+		return os.Remove(fp)
+	})
+
 	doOne := func(job Job) error {
 		packager := job[0]
 		platform := job[1]
@@ -176,14 +196,6 @@ func pack() (err error) {
 		if err != nil {
 			return err
 		}
-		// clean up the dist directory
-		fmt.Printf("cleaning dist dir\n")
-		filepath.WalkDir("dist", func(fp string, dirEntry os.DirEntry, err error) error {
-			if err != nil || fp == "dist" {
-				return err
-			}
-			return os.Remove(fp)
-		})
 
 		config := &nfpm.Config{
 			Info: nfpm.Info{
