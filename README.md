@@ -4,7 +4,7 @@
 
 A purego CLI for operations on groups of git repos.
 
-## Distributions
+## Installation
 TL/DR for apple silicon:
 ```
 brew tap https://github.com/jkassis/dist.brew.pub
@@ -15,12 +15,12 @@ Earlier versions of this utility called os.exec to invoke the git CLI to run git
 
 This cross-platform build chain currently produces... 
 
-• gitall-x.y.z.aarch64.rpm
-• gitall-x.y.z.x86_64.rpm
-• gitall_x.y.z_aarch64.apk
-• gitall_x.y.z_amd64.deb
-• gitall_x.y.z_arm64.deb
-• gitall_x.y.z_x86_64.apk
+- gitall-x.y.z.aarch64.rpm
+- gitall-x.y.z.x86_64.rpm
+- gitall_x.y.z_aarch64.apk
+- gitall_x.y.z_amd64.deb
+- gitall_x.y.z_arm64.deb
+- gitall_x.y.z_x86_64.apk
 
 Download binaries from this repo's releases or install the mac version from [my brew tap](https://github.com/jkassis/dist.brew.pub).
 
