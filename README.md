@@ -57,6 +57,4 @@ Use "gitall [command] --help" for more information about a command.
  ✔  nm2                                      in sync (git@github.com:jkassis/nm2.git)
  ✔  w3af                                     in sync (https://github.com/andresriancho/w3af.git)
 <-> jerrie                                   out of sync (git@github.com:jkassis/jerrie.git)
-<-> live.shinetribe.media                    out of sync (git@github.com:jkassis/live.shinetribe.media.git)
-<-> merchie                                  out of sync (git@github.com:jkassis/merchie.git)
 ```
