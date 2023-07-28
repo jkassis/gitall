@@ -60,11 +60,3 @@ Use "gitall [command] --help" for more information about a command.
 <-> live.shinetribe.media                    out of sync (git@github.com:jkassis/live.shinetribe.media.git)
 <-> merchie                                  out of sync (git@github.com:jkassis/merchie.git)
 ```
-
-## Installation
-
->
-```
-> [I] jkassis@Jeremys-MacBook-Pro ~/code>  tap jkassis/keg
-> [I] jkassis@Jeremys-MacBook-Pro ~/code>  brew install gitall
-```
