@@ -5,7 +5,11 @@
 A purego CLI for operations on groups of git repos.
 
 ## Distributions
-TL/DR: You can install the mac version from [my brew tap](https://github.com/jkassis/dist.brew.pub).
+TL/DR for apple silicon:
+```
+brew tap https://github.com/jkassis/dist.brew.pub
+brew install gitall
+```
 
 Earlier versions of this utility called os.exec to invoke the git CLI to run git commands. This version uses [go-git](https://github.com/go-git/go-git) to run git commands. Ironically... this "pure go" approach requires [CGO](https://pkg.go.dev/cmd/cgo) and a cross-platform build pipeline to produce native executables.
 
