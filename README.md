@@ -4,9 +4,10 @@
 
 A purego CLI for operations on groups of git repos.
 
-## Status
+## Distributions
+TL/DR: You can install the mac version from [my brew tap](https://github.com/jkassis/dist.brew.pub).
 
-Earlier versions of this utility called os.exec to invoke the git CLI to run git commands. This version uses [go-git](https://github.com/go-git/go-git) to run git commands. Ironically... this "pure go" approach requires [CGO](https://pkg.go.dev/cmd/cgo) and a cross-platform toolchain to build OS-native executables.
+Earlier versions of this utility called os.exec to invoke the git CLI to run git commands. This version uses [go-git](https://github.com/go-git/go-git) to run git commands. Ironically... this "pure go" approach requires [CGO](https://pkg.go.dev/cmd/cgo) and a cross-platform build pipeline to produce native executables.
 
 This cross-platform build chain currently produces... 
 
@@ -17,7 +18,7 @@ This cross-platform build chain currently produces...
 • gitall_x.y.z_arm64.deb
 • gitall_x.y.z_x86_64.apk
 
-You can install the mac version from [my brew tap](https://github.com/jkassis/dist.brew.pub)
+Download binaries from this repo's releases or install the mac version from [my brew tap](https://github.com/jkassis/dist.brew.pub).
 
 
 ## Usage
