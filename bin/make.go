@@ -85,6 +85,15 @@ func init() {
 			return release()
 		},
 	})
+
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "distro",
+		Short: "distribute artifacts to distro repositories",
+		Long:  "supports brew and apk for now",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return distro()
+		},
+	})
 }
 
 func main() {
@@ -342,6 +351,177 @@ func release() error {
 	}
 
 	// commit
+	fmt.Printf("adding .semver.yaml for a new commit\n")
+	err = ExecAndStream("git", "add", ".semver.yaml")
+	if err != nil {
+		return fmt.Errorf("trouble adding: %v", err)
+	}
+
+	// commit
+	fmt.Printf("commiting\n")
+	err = ExecAndStream("git", "commit", "-m", ".semver.yaml bump")
+	if err != nil {
+		return fmt.Errorf("trouble commiting: %v", err)
+	}
+
+	// push
+	fmt.Printf("pushing%v\n", v.String())
+	err = ExecAndStream("git", "push")
+	if err != nil {
+		return fmt.Errorf("trouble pushing: %v", err)
+	}
+
+	// tag the release
+	fmt.Printf("tagging the release with %s\n", v.String())
+	err = ExecAndStream("git", "tag", v.String())
+	if err != nil {
+		return fmt.Errorf("trouble tagging the release with git: %v", err)
+	}
+
+	// push tags
+	fmt.Printf("pushing tags %v\n", v.String())
+	err = ExecAndStream("git", "push", "--tags")
+	if err != nil {
+		return fmt.Errorf("trouble tagging the release with git: %v", err)
+	}
+
+	// create the github release
+	fmt.Printf("creating the github release\n")
+	err = ExecAndStream("gh", append([]string{"release", "create", v.String()}, files...)...)
+	if err != nil {
+		return fmt.Errorf("trouble creating the github release: %v", err)
+	}
+	return nil
+}
+
+func distro() error {
+	// for apk...
+	{
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("could not get working dir: %v", err)
+		}
+
+		// chdir
+		aptRepoDirPath := "../dist.apt.pub/"
+		os.Chdir(aptRepoDirPath)
+
+		// copy .debs to the dir
+		files := make([]string, 0)
+		filepath.WalkDir("dist", func(fp string, _ os.DirEntry, err error) error {
+			if err != nil || fp == "dist" {
+				return err
+			}
+			if strings.HasSuffix(fp, ".deb") {
+				files = append(files, fp)
+				err = CP(fp, fp)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+
+		// run dpkg-scan
+		dpkgOut, dpkgErr, err := Exec("dpkg-scanpackages", "-m", aptRepoDirPath)
+		if err != nil || len(dpkgErr) > 0 {
+			return fmt.Errorf("dpkg-scanpackages problem: %v", err)
+		}
+
+		// write the Package file
+		err = os.WriteFile(aptRepoDirPath+"Packages", []byte(dpkgOut), 0x644)
+		if err != nil {
+			return fmt.Errorf("could not write Packages file: %v", err)
+		}
+
+		// add files to the commit
+		fmt.Printf("adding .semver.yaml for a new commit\n")
+		err = ExecAndStream("git", "add", ".semver.yaml")
+		if err != nil {
+			return fmt.Errorf("trouble adding: %v", err)
+		}
+
+		// commit
+		fmt.Printf("commiting\n")
+		err = ExecAndStream("git", "commit", "-m", ".semver.yaml bump")
+		if err != nil {
+			return fmt.Errorf("trouble commiting: %v", err)
+		}
+
+		// push
+		fmt.Printf("pushing%v\n", v.String())
+		err = ExecAndStream("git", "push")
+		if err != nil {
+			return fmt.Errorf("trouble pushing: %v", err)
+		}
+
+		// commit the repo
+
+		// push it
+
+	}
+
+	// check for local changes
+	fmt.Printf("git: checking for changes\n")
+	gitStatusOut, _, err := Exec("git", "status", "--porcelain")
+	if err != nil || len(gitStatusOut) > 0 {
+		return fmt.Errorf("git: there are uncommitted changes to this repo. Commit changes and build with bin/build.sh first: %v", err)
+	}
+	fmt.Printf("git: no changes\n")
+
+	// check that branches are in sync
+	fmt.Printf("git: checking that local branch is in sync with origin\n")
+	branch, _, err := Exec("git", "rev-parse", "--abbrev-ref", "HEAD")
+	branch = strings.TrimSpace(branch)
+	if err != nil {
+		return fmt.Errorf("git: problem getting branch info: %v", err)
+	}
+
+	localRev, _, err := Exec("git", "rev-parse", branch)
+	localRev = strings.TrimSpace(localRev)
+	if err != nil {
+		return fmt.Errorf("git: problem getting local branch revision: %v", err)
+	}
+
+	remoteRev, _, err := Exec("git", "rev-parse", "origin/"+branch)
+	remoteRev = strings.TrimSpace(remoteRev)
+	if err != nil {
+		return fmt.Errorf("git: problem getting remote branch revision: %v", err)
+	}
+
+	if localRev != remoteRev {
+		return fmt.Errorf("git: %s is not in sync with origin/%s. You need to rebase or push first", branch, branch)
+	}
+
+	fmt.Printf("git: branches in sync\n")
+
+	// get list of files
+	var files []string
+	files = make([]string, 0)
+	filepath.WalkDir("dist", func(fp string, _ os.DirEntry, err error) error {
+		if err != nil || fp == "dist" {
+			return err
+		}
+		files = append(files, fp)
+		return nil
+	})
+
+	// bump the patch version
+	v, err := semver.NewVersion(viper.GetString("release"))
+	if err != nil {
+		return err
+	}
+	*v = v.IncPatch()
+
+	// write the .semver.yaml file
+	fmt.Printf("bumping .semver.yaml file to %s\n", v.String())
+	viper.Set("release", v)
+	err = viper.WriteConfig()
+	if err != nil {
+		return fmt.Errorf("could not write semver.yaml: %v", err)
+	}
+
+	// add files to the commit
 	fmt.Printf("adding .semver.yaml for a new commit\n")
 	err = ExecAndStream("git", "add", ".semver.yaml")
 	if err != nil {
