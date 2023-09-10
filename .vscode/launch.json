@@ -5,6 +5,29 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "whatwhere",
+      "program": "${workspaceFolder}/cmd",
+      "args": [
+        "whatwhere",
+        "../error",
+        "../merchie",
+        "../jerrie",
+        "../jerriedr",
+        "../gazer",
+        "../arcer",
+        "../poser",
+        "../gitall"
+      ],
+
+      "console": "integratedTerminal",
+      "cwd": ".",
+      "env": {},
+      "mode": "debug",
+      "request": "launch",
+      "type": "go"
+    },
+
+    {
       "name": "status",
       "program": "${workspaceFolder}/cmd",
       "args": [

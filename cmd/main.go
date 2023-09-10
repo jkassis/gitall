@@ -16,6 +16,7 @@ var MAIN = &cobra.Command{
 func init() {
 	CMDStatusInit()
 	CMDUpdateTapInit()
+	CMDWhatWhereInit()
 }
 
 func main() {
