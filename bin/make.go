@@ -397,10 +397,10 @@ func release() error {
 func distro() error {
 	// for apk...
 	{
-		cwd, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("could not get working dir: %v", err)
-		}
+		// cwd, err := os.Getwd()
+		// if err != nil {
+		// 	return fmt.Errorf("could not get working dir: %v", err)
+		// }
 
 		// chdir
 		aptRepoDirPath := "../dist.apt.pub/"
@@ -449,7 +449,7 @@ func distro() error {
 		}
 
 		// push
-		fmt.Printf("pushing%v\n", v.String())
+		fmt.Printf("pushing%v")
 		err = ExecAndStream("git", "push")
 		if err != nil {
 			return fmt.Errorf("trouble pushing: %v", err)
