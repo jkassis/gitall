@@ -224,7 +224,7 @@ func pack() (err error) {
 				Overridables: nfpm.Overridables{
 					Contents: files.Contents{
 						&files.Content{
-							Source:      "./build/github.com/jkassis/gitall-linux-" + arch,
+							Source:      fmt.Sprintf("./build/github.com/jkassis/gitall-%s-%s", platform, arch),
 							Destination: "/usr/bin/gitall",
 						},
 					},
@@ -263,8 +263,8 @@ func pack() (err error) {
 		{"deb", "linux", "arm64", "./dist", ".deb"},
 		{"rpm", "linux", "amd64", "./dist", ".tar.gz"},
 		{"rpm", "linux", "arm64", "./dist", ".tar.gz"},
-		{"rpm", "darwin", "amd64", "./dist", ".tar.gz"},
-		{"rpm", "darwin", "arm64", "./dist", ".tar.gz"},
+		{"rpm", "darwin-10.10", "amd64", "./dist", ".tar.gz"},
+		{"rpm", "darwin-10.10", "arm64", "./dist", ".tar.gz"},
 	}
 
 	for _, job := range jobs {
