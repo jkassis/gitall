@@ -240,7 +240,7 @@ func pack() (err error) {
 		info = nfpm.WithDefaults(info)
 
 		// open the target file
-		target = "gitall-" + platform + "-" + arch + "-" + suffix
+		target = target + "/gitall-" + platform + "-" + arch + "-1.0.1" + suffix
 		f, err := os.Create(target)
 		if err != nil {
 			return err
@@ -255,16 +255,16 @@ func pack() (err error) {
 	}
 
 	jobs := []Job{
-		{"archlinux", "linux", "amd64", "./dist", "archlinux"},
-		{"archlinux", "linux", "arm64", "./dist", "archlinux"},
-		{"apk", "linux", "amd64", "./dist", "apk"},
-		{"apk", "linux", "arm64", "./dist", "apk"},
-		{"deb", "linux", "amd64", "./dist", "deb"},
-		{"deb", "linux", "arm64", "./dist", "deb"},
-		{"rpm", "linux", "amd64", "./dist", "tar.gz"},
-		{"rpm", "linux", "arm64", "./dist", "tar.gz"},
-		{"rpm", "darwin", "amd64", "./dist", "tar.gz"},
-		{"rpm", "darwin", "arm64", "./dist", "tar.gz"},
+		{"archlinux", "linux", "amd64", "./dist", ".archlinux"},
+		{"archlinux", "linux", "arm64", "./dist", ".archlinux"},
+		{"apk", "linux", "amd64", "./dist", ".apk"},
+		{"apk", "linux", "arm64", "./dist", ".apk"},
+		{"deb", "linux", "amd64", "./dist", ".deb"},
+		{"deb", "linux", "arm64", "./dist", ".deb"},
+		{"rpm", "linux", "amd64", "./dist", ".tar.gz"},
+		{"rpm", "linux", "arm64", "./dist", ".tar.gz"},
+		{"rpm", "darwin", "amd64", "./dist", ".tar.gz"},
+		{"rpm", "darwin", "arm64", "./dist", ".tar.gz"},
 	}
 
 	for _, job := range jobs {
