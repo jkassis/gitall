@@ -225,7 +225,7 @@ func pack() (err error) {
 					Contents: files.Contents{
 						&files.Content{
 							Source:      fmt.Sprintf("./build/github.com/jkassis/gitall-%s-%s", platform, arch),
-							Destination: "/usr/bin/gitall",
+							Destination: "bin/gitall",
 						},
 					},
 				},
