@@ -21,7 +21,7 @@ func KeyringGet() keyring.Keyring {
 		var err error
 		ringCached, err = keyring.Open(keyring.Config{ServiceName: "gitall"})
 		if err != nil {
-			log.Fatalf("could not access keyring: %v")
+			log.Fatalf("could not access keyring: %v", err)
 		}
 	}
 	return ringCached

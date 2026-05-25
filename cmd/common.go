@@ -164,11 +164,11 @@ REPOS:
 		for _, status := range stati {
 			if status.Worktree != git.Unmodified {
 				s.NeedsCommitList[dir] = Status{Dir: dir, Detail: clrPurple + "has unstaged changes" + clrReset}
-				continue
+				continue REPOS
 			}
 			if status.Staging != git.Unmodified {
 				s.NeedsCommitList[dir] = Status{Dir: dir, Detail: clrPurple + "has staged changes" + clrReset}
-				continue
+				continue REPOS
 			}
 		}
 

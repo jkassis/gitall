@@ -64,7 +64,7 @@ func CMDUpdateTap(v *viper.Viper, dirs []string) {
 
 	client, err := GithubClientGet(v)
 	if err != nil {
-		log.Fatal("could not get github client: %v", err)
+		log.Fatalf("could not get github client: %v", err)
 	}
 
 	// get the status of requested dirs

@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -450,7 +449,7 @@ func distro() error {
 		}
 
 		// push
-		fmt.Printf("pushing%v")
+		fmt.Printf("pushing\n")
 		err = ExecAndStream("git", "push")
 		if err != nil {
 			return fmt.Errorf("trouble pushing: %v", err)
@@ -594,5 +593,5 @@ func CP(src, dst string) error {
 		return err
 	}
 
-	return os.WriteFile("./dist"+path.Base(dst), input, 0644)
+	return os.WriteFile(filepath.Join("dist", filepath.Base(dst)), input, 0644)
 }
