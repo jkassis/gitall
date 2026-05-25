@@ -327,9 +327,12 @@ func release() error {
 	// get list of files
 	var files []string
 	files = make([]string, 0)
-	filepath.WalkDir("dist", func(fp string, _ os.DirEntry, err error) error {
+	filepath.WalkDir("dist", func(fp string, dirEntry os.DirEntry, err error) error {
 		if err != nil || fp == "dist" {
 			return err
+		}
+		if dirEntry.IsDir() {
+			return nil
 		}
 		files = append(files, fp)
 		return nil
@@ -498,9 +501,12 @@ func distro() error {
 	// get list of files
 	var files []string
 	files = make([]string, 0)
-	filepath.WalkDir("dist", func(fp string, _ os.DirEntry, err error) error {
+	filepath.WalkDir("dist", func(fp string, dirEntry os.DirEntry, err error) error {
 		if err != nil || fp == "dist" {
 			return err
+		}
+		if dirEntry.IsDir() {
+			return nil
 		}
 		files = append(files, fp)
 		return nil
