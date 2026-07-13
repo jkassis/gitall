@@ -12,7 +12,7 @@ Make release output and release prerequisites reviewable before invoking the hig
 
 ### Tasks
 
-- [ ] Record user-visible changes in `changelog.md`.
+- [x] Record user-visible changes in `changelog.md`.
 - [ ] Verify build and package artifacts from a clean checkout.
 - [ ] Confirm GitHub CLI, Docker, and publishing prerequisites from `docs/runbooks/RELEASE.md`.
 - [ ] Run `go run ./bin/make.go release` only after the worktree and branch checks pass.
