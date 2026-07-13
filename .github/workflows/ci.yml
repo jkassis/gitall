@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.19'
+          cache: true
+
+      - name: Test
+        run: go test -mod=vendor ./...
+
+      - name: Vet
+        run: go vet -mod=vendor ./...
+
+      - name: Build
+        run: go build -mod=vendor -o /tmp/gitall ./cmd/

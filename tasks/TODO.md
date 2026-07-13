@@ -1,28 +1,5 @@
 # TODO
 
-## Add continuous integration
-
-Status: committed
-Priority: high
-Owner: unassigned
-
-### Objective
-
-Run the repository's baseline validation automatically for every change.
-
-### Tasks
-
-- [ ] Add GitHub Actions workflow for `go test ./...`.
-- [ ] Add `go vet ./...` and a CLI build to the workflow.
-- [ ] Keep the workflow compatible with vendored dependencies.
-- [ ] Document the CI check in the repository development guidance.
-
-### Acceptance criteria
-
-- Pull requests run tests, vet, and build on a supported Go version.
-- A failing check prevents the change from being considered release-ready.
-- The workflow is reproducible locally with commands documented in `AGENTS.md`.
-
 ## Harden repository status edge cases
 
 Status: committed

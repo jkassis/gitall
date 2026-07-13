@@ -45,6 +45,12 @@
   ```sh
   go test ./...
   ```
+- CI validation:
+  ```sh
+  go test -mod=vendor ./...
+  go vet -mod=vendor ./...
+  go build -mod=vendor -o /tmp/gitall ./cmd/
+  ```
 - Run the local CLI without installing:
   ```sh
   go run ./cmd --help
