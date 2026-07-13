@@ -70,7 +70,11 @@ func GitWhatWhereGet(publicKeys *ssh.PublicKeys, dirs []string) WhatWhere {
 			s[dir] = Status{Dir: dir, Detail: fmt.Sprintf(clrRed+"could not get ref for head %v"+clrReset, err)}
 			continue
 		}
-		s[dir] = Status{Dir: dir, Detail: fmt.Sprintf(clrGreen+"%s of %s"+clrReset, h.Name()[11:], o.Config().URLs[0])}
+		if !h.Name().IsBranch() {
+			s[dir] = Status{Dir: dir, Detail: clrRed + "detached HEAD" + clrReset}
+			continue
+		}
+		s[dir] = Status{Dir: dir, Detail: fmt.Sprintf(clrGreen+"%s of %s"+clrReset, h.Name().Short(), o.Config().URLs[0])}
 	}
 	return s
 }

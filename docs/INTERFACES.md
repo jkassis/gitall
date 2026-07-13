@@ -23,6 +23,8 @@ Checks each target directory as a git repository, fetches `origin`, compares loc
 
 Fetch failures, missing `origin` remotes, and repository inspection errors are reported for the affected directory while checks continue for other directories.
 
+Detached HEADs are reported as repository errors and are not considered in sync; `whatwhere` reports `detached HEAD` without attempting to invent a branch name.
+
 ### `whatwhere`
 
 ```text

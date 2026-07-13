@@ -108,6 +108,15 @@ REPOS:
 			}
 		}
 
+		head, err := r.Head()
+		if checkErr(err, dir) {
+			continue
+		}
+		if !head.Name().IsBranch() {
+			s.RepoErrorList[dir] = Status{Dir: dir, Detail: clrRed + "detached HEAD; check out a branch" + clrReset}
+			continue
+		}
+
 		// remoteOriginURL := origin.URLs[0]
 
 		// get references for head and remote/origin

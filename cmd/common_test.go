@@ -57,6 +57,47 @@ func TestGitStatiGetClassifiesRepos(t *testing.T) {
 	if _, ok := withoutOriginResult.NeedsNothingList[healthy.work]; !ok {
 		t.Fatalf("one repo error must not suppress other repo results: %#v", withoutOriginResult)
 	}
+
+	detached := newLocalClone(t)
+	detachedRepo, err := git.PlainOpen(detached.work)
+	if err != nil {
+		t.Fatal(err)
+	}
+	detachedHead, err := detachedRepo.Head()
+	if err != nil {
+		t.Fatal(err)
+	}
+	detachedWorktree, err := detachedRepo.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := detachedWorktree.Checkout(&git.CheckoutOptions{Hash: detachedHead.Hash()}); err != nil {
+		t.Fatal(err)
+	}
+	detachedResult := GitStatiGet(nil, []string{detached.work})
+	if status, ok := detachedResult.RepoErrorList[detached.work]; !ok || !strings.Contains(status.Detail, "detached HEAD") {
+		t.Fatalf("detached repo should be reported clearly: %#v", detachedResult)
+	}
+
+	localOnly := newLocalClone(t)
+	localOnlyRepo, err := git.PlainOpen(localOnly.work)
+	if err != nil {
+		t.Fatal(err)
+	}
+	localOnlyWorktree, err := localOnlyRepo.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := localOnlyWorktree.Checkout(&git.CheckoutOptions{
+		Create: true,
+		Branch: plumbing.NewBranchReferenceName("local-only"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	localOnlyResult := GitStatiGet(nil, []string{localOnly.work})
+	if status, ok := localOnlyResult.NeedsSyncList[localOnly.work]; !ok || !strings.Contains(status.Detail, "has no origin branch") {
+		t.Fatalf("local-only branch should require sync: %#v", localOnlyResult)
+	}
 }
 
 func TestGitWhatWhereGetReportsBranchAndOrigin(t *testing.T) {
@@ -69,6 +110,27 @@ func TestGitWhatWhereGetReportsBranchAndOrigin(t *testing.T) {
 	}
 	if !strings.Contains(status.Detail, "master of "+repos.origin) {
 		t.Fatalf("unexpected whatwhere detail: %q", status.Detail)
+	}
+
+	detached := newLocalClone(t)
+	detachedRepo, err := git.PlainOpen(detached.work)
+	if err != nil {
+		t.Fatal(err)
+	}
+	detachedHead, err := detachedRepo.Head()
+	if err != nil {
+		t.Fatal(err)
+	}
+	detachedWorktree, err := detachedRepo.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := detachedWorktree.Checkout(&git.CheckoutOptions{Hash: detachedHead.Hash()}); err != nil {
+		t.Fatal(err)
+	}
+	detachedResult := GitWhatWhereGet(nil, []string{detached.work})
+	if status, ok := detachedResult[detached.work]; !ok || !strings.Contains(status.Detail, "detached HEAD") {
+		t.Fatalf("detached repo should be reported clearly: %#v", detachedResult)
 	}
 }
 

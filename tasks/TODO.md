@@ -1,28 +1,5 @@
 # TODO
 
-## Harden repository status edge cases
-
-Status: committed
-Priority: medium
-Owner: unassigned
-
-### Objective
-
-Make multi-repository inspection predictable when repositories have unusual or failing states.
-
-### Tasks
-
-- [ ] Define behavior for detached HEADs and missing matching remote branches.
-- [x] Add focused tests for missing `origin` and partial failure across multiple repositories.
-- [x] Ensure fetch errors remain actionable without aborting the full scan.
-- [ ] Update `docs/INTERFACES.md` and `docs/QUALITIES.md` for any clarified behavior.
-
-### Acceptance criteria
-
-- Each edge case has an explicit result and test coverage.
-- One failing repository does not suppress results for other requested repositories.
-- CLI output and exit behavior are documented.
-
 ## Prepare the next release
 
 Status: committed
