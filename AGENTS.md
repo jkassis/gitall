@@ -18,7 +18,6 @@
 - `cmd/cmdUpdateTap.go` and `cmd/brewFormula.go`: Homebrew tap update flow and formula rendering.
 - `bin/make.go`: Go-based build/release/package helper invoked with `go run ./bin/make.go <command>`.
 - `bin/release.bash` and `bin/buildx.bash`: release/build shell helpers.
-- `docs/runbooks/RELEASE.md`: release workflow notes.
 - `tasks/TODO.md`: committed task index.
 - `tasks/IDEAS.md`: captured but uncommitted future work.
 - `tasks/DONE.md`: completed task index.
@@ -57,7 +56,7 @@
   go run ./cmd status <repo-dir>...
   go run ./cmd whatwhere <repo-dir>...
   ```
-- Cross-platform packaging and release commands in `bin/make.go` may require Docker, GitHub CLI, `dpkg-scanpackages`, adjacent distro repositories, and a clean/in-sync git branch.
+- Cross-platform packaging commands in `bin/make.go` may require Docker and distro tooling.
 
 ## Development Guidance
 
@@ -73,9 +72,7 @@
 
 - SSH key passphrases and GitHub credentials are stored through the local keyring service named `gitall`.
 - `status` and `updatetap` fetch from remotes using go-git and SSH auth; they can touch the network.
-- `updatetap` writes Homebrew formula files to the user-provided tap repo, creates a commit, and pushes it.
-- `bin/make.go release` checks git cleanliness, bumps `.semver.yaml`, commits, tags, pushes, and creates a GitHub release.
-- Treat commands that push, tag, release, write neighboring repos, or prompt for credentials as high-impact operations; do not run them casually during validation.
+- Treat commands that write neighboring repos or prompt for credentials as high-impact operations; do not run them casually during validation.
 
 ## Generated And Vendored Content
 
