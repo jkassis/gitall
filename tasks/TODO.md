@@ -12,9 +12,9 @@ Make multi-repository inspection predictable when repositories have unusual or f
 
 ### Tasks
 
-- [ ] Define behavior for detached HEADs, missing `origin`, missing matching remote branches, and fetch failures.
-- [ ] Add focused tests for those cases and for partial failure across multiple repositories.
-- [ ] Ensure per-repository errors remain actionable without aborting the full scan.
+- [ ] Define behavior for detached HEADs and missing matching remote branches.
+- [x] Add focused tests for missing `origin` and partial failure across multiple repositories.
+- [x] Ensure fetch errors remain actionable without aborting the full scan.
 - [ ] Update `docs/INTERFACES.md` and `docs/QUALITIES.md` for any clarified behavior.
 
 ### Acceptance criteria

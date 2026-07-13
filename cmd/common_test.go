@@ -43,6 +43,20 @@ func TestGitStatiGetClassifiesRepos(t *testing.T) {
 	if _, ok := errors.RepoErrorList[missing]; !ok {
 		t.Fatalf("missing repo should be reported as repo error: %#v", errors)
 	}
+
+	withoutOrigin := filepath.Join(t.TempDir(), "without-origin")
+	if _, err := git.PlainInit(withoutOrigin, false); err != nil {
+		t.Fatal(err)
+	}
+	commitFile(t, withoutOrigin, "README.md", "no origin\n", "no origin")
+	healthy := newLocalClone(t)
+	withoutOriginResult := GitStatiGet(nil, []string{withoutOrigin, healthy.work})
+	if _, ok := withoutOriginResult.RepoErrorList[withoutOrigin]; !ok {
+		t.Fatalf("repo without origin should be reported as repo error: %#v", withoutOriginResult)
+	}
+	if _, ok := withoutOriginResult.NeedsNothingList[healthy.work]; !ok {
+		t.Fatalf("one repo error must not suppress other repo results: %#v", withoutOriginResult)
+	}
 }
 
 func TestGitWhatWhereGetReportsBranchAndOrigin(t *testing.T) {

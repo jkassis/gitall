@@ -4,6 +4,7 @@
 
 - Repository checks should isolate failures per target directory so one bad repo does not prevent reporting on the rest.
 - Network and host-key errors should be surfaced in the per-repo error list with actionable detail.
+- Missing remotes and other fetch failures should be surfaced as per-repo errors rather than inferred repository drift.
 - High-impact release and tap update flows should fail before writing remote state when preconditions are not met.
 
 ## Safety

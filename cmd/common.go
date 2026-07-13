@@ -101,10 +101,10 @@ REPOS:
 		if err != nil {
 			if strings.Contains(err.Error(), "already up-to-date") {
 				// do nothing
-			} else if strings.Contains(err.Error(), "knownhosts") {
-				err = fmt.Errorf("problem with known_hosts entry for 'github.com'. try running `ssh-keyscan github.com >> ~/.ssh/known_hosts` on your cli: %v", err)
-				s.RepoErrorList[dir] = Status{Dir: dir, Detail: err.Error()}
-				continue
+			} else {
+				if checkErr(err, dir) {
+					continue
+				}
 			}
 		}
 

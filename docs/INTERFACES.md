@@ -21,6 +21,8 @@ Checks each target directory as a git repository, fetches `origin`, compares loc
 - repositories with staged or unstaged worktree changes
 - repositories whose local branches are missing or divergent from origin branches
 
+Fetch failures, missing `origin` remotes, and repository inspection errors are reported for the affected directory while checks continue for other directories.
+
 ### `whatwhere`
 
 ```text
