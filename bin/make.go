@@ -190,12 +190,9 @@ func pack() (err error) {
 
 	// clean up the dist directory
 	fmt.Printf("cleaning dist dir\n")
-	filepath.WalkDir("dist", func(fp string, dirEntry os.DirEntry, err error) error {
-		if err != nil || fp == "dist" {
-			return err
-		}
-		return os.Remove(fp)
-	})
+	if err := cleanDist(); err != nil {
+		return err
+	}
 
 	doOne := func(job Job) error {
 		packager := job[0]
@@ -278,6 +275,19 @@ func pack() (err error) {
 		}
 	}
 
+	return nil
+}
+
+func cleanDist() error {
+	entries, err := os.ReadDir("dist")
+	if err != nil {
+		return fmt.Errorf("reading dist dir: %v", err)
+	}
+	for _, entry := range entries {
+		if err := os.RemoveAll(filepath.Join("dist", entry.Name())); err != nil {
+			return fmt.Errorf("cleaning dist dir: %v", err)
+		}
+	}
 	return nil
 }
 
