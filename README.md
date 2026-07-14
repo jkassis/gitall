@@ -35,7 +35,7 @@ The package build currently produces artifacts such as:
 ```sh
 gitall status ~/code/*
 gitall whatwhere ~/code/*
-gitall updatetap -b ~/code/dist.brew.pub ~/code/gitall
+gitall updatetap -b <tap-repo> ~/code/gitall
 ```
 
 Example `status` output:
@@ -74,13 +74,12 @@ go run ./cmd status <repo-dir>...
 go run ./cmd whatwhere <repo-dir>...
 ```
 
-The Go-based project helper wraps common build, package, and release workflows:
+The Go-based project helper wraps common build and package workflows:
 
 ```sh
 go run ./bin/make.go build
 go run ./bin/make.go buildx
 go run ./bin/make.go package
-go run ./bin/make.go release
 ```
 
 ## Documentation
@@ -88,4 +87,3 @@ go run ./bin/make.go release
 - [System context](docs/CONTEXT.md)
 - [Interfaces](docs/INTERFACES.md)
 - [Quality attributes](docs/QUALITIES.md)
-- [Release runbook](docs/runbooks/RELEASE.md)
