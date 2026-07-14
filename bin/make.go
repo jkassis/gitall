@@ -161,10 +161,10 @@ func buildx() (err error) {
 		"-v", pwd+":/source", // sourcecode
 		"-e", "FLAG_V=false",
 		"-e", "FLAG_X=false",
-		"-e", "FLAG_RACE=false ",
-		`-e",  "FLAG_LDFLAGS="-w -s"`,
-		"-e", "FLAG_BUILDMODE=default ",
-		`-e",  "TARGETS="linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64`,
+		"-e", "FLAG_RACE=false",
+		"-e", "FLAG_LDFLAGS=-w -s",
+		"-e", "FLAG_BUILDMODE=default",
+		"-e", "TARGETS=linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64",
 		"jkassis/xgo:1.19.5",
 		"./cmd/")
 	if err != nil {
@@ -182,6 +182,11 @@ func buildx() (err error) {
 
 func pack() (err error) {
 	type Job [5]string
+	currentVersion, err := semver.NewVersion(viper.GetString("release"))
+	if err != nil {
+		return fmt.Errorf("release version is not configured: %v", err)
+	}
+	version := currentVersion.IncPatch().String()
 
 	// clean up the dist directory
 	fmt.Printf("cleaning dist dir\n")
@@ -211,7 +216,7 @@ func pack() (err error) {
 				Name:          "gitall",
 				Arch:          arch,
 				Platform:      platform,
-				Version:       "1.0.1",
+				Version:       version,
 				VersionSchema: "semver",
 				Section:       "default",
 				Priority:      "extra",
@@ -239,7 +244,7 @@ func pack() (err error) {
 		info = nfpm.WithDefaults(info)
 
 		// open the target file
-		target = target + "/gitall-" + platform + "-" + arch + "-1.0.1" + suffix
+		target = target + "/gitall-" + platform + "-" + arch + "-" + version + suffix
 		f, err := os.Create(target)
 		if err != nil {
 			return err
